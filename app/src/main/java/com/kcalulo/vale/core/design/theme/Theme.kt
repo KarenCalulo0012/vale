@@ -1,4 +1,4 @@
-package com.kcalulo.vale.ui.theme
+package com.kcalulo.vale.core.design.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

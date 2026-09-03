@@ -1,4 +1,4 @@
-package com.kcalulo.vale.ui.theme
+package com.kcalulo.vale.core.design.theme
 
 import androidx.compose.ui.graphics.Color
 

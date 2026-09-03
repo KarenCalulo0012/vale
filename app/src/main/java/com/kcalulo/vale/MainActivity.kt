@@ -4,216 +4,108 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.kcalulo.vale.ui.components.ValeBottomNav
-import com.kcalulo.vale.ui.components.ValeBottomSheet
-import com.kcalulo.vale.ui.components.ValeDialog
-import com.kcalulo.vale.ui.components.ValeInputField
-import com.kcalulo.vale.ui.components.ValeItemCard
-import com.kcalulo.vale.ui.components.ValeMascot
-import com.kcalulo.vale.ui.components.ValeMascotMessage
-import com.kcalulo.vale.ui.components.ValeNavItem
-import com.kcalulo.vale.ui.components.ValePrimaryButton
-import com.kcalulo.vale.ui.components.ValeSecondaryButton
-import com.kcalulo.vale.ui.components.ValeSheetOption
-import com.kcalulo.vale.ui.components.ValeStatus
-import com.kcalulo.vale.ui.components.ValeStatusChip
-import com.kcalulo.vale.ui.components.ValeStepperField
-import com.kcalulo.vale.ui.components.ValeTextButton
-import com.kcalulo.vale.ui.theme.MintSoft
-import com.kcalulo.vale.ui.theme.PinkSoft
-import com.kcalulo.vale.ui.theme.SoftLavender
-import com.kcalulo.vale.ui.theme.StatusNotWorthIt
-import com.kcalulo.vale.ui.theme.StatusOnTrack
-import com.kcalulo.vale.ui.theme.ValeTheme
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.kcalulo.vale.core.design.components.ValeBottomNav
+import com.kcalulo.vale.core.design.components.ValeNavItem
+import com.kcalulo.vale.core.design.theme.ValeTheme
+import com.kcalulo.vale.core.navigation.TopLevelDestinations
+import com.kcalulo.vale.core.navigation.ValeNavHost
+import com.kcalulo.vale.core.navigation.ValeRoutes
+import com.kcalulo.vale.data.preferences.ThemePreference
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        val viewModel: MainViewModel by viewModels()
+        splashScreen.setKeepOnScreenCondition {
+            viewModel.uiState.value is MainUiState.Loading
+        }
         enableEdgeToEdge()
         setContent {
-            ValeTheme {
-                ValeShowcaseScreen()
-            }
+            ValeApp()
         }
     }
 }
 
-/** Demo of the Vale design system — replace with real screens as they're built. */
 @Composable
-fun ValeShowcaseScreen() {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    var amount by remember { mutableStateOf("1,200") }
-    var uses by remember { mutableIntStateOf(30) }
-    var showSheet by remember { mutableStateOf(false) }
-    var showDialog by remember { mutableStateOf(false) }
+fun ValeApp(viewModel: MainViewModel = hiltViewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val state = uiState
+
+    if (state is MainUiState.Ready) {
+        val darkTheme = when (state.preferences.theme) {
+            ThemePreference.SYSTEM -> isSystemInDarkTheme()
+            ThemePreference.LIGHT -> false
+            ThemePreference.DARK -> true
+        }
+        ValeTheme(darkTheme = darkTheme) {
+            ValeAppScaffold(
+                startDestination = if (state.preferences.hasCompletedOnboarding) {
+                    ValeRoutes.HOME
+                } else {
+                    ValeRoutes.ONBOARDING
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ValeAppScaffold(startDestination: String) {
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = backStackEntry?.destination
+
+    val topLevelIndex = TopLevelDestinations.indexOfFirst { dest ->
+        currentDestination?.hierarchy?.any { it.route == dest.route } == true
+    }
+    val showBottomBar = topLevelIndex >= 0
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            ValeBottomNav(
-                items = listOf(
-                    ValeNavItem("Home", Icons.Default.Home),
-                    ValeNavItem("Things", Icons.Default.ShoppingCart),
-                    ValeNavItem("Calculate", Icons.Default.Add, isCenterAction = true),
-                    ValeNavItem("Track", Icons.Default.CheckCircle),
-                    ValeNavItem("Progress", Icons.Default.Star),
-                ),
-                selectedIndex = selectedTab,
-                onItemSelected = { selectedTab = it }
-            )
+            if (showBottomBar) {
+                ValeBottomNav(
+                    items = TopLevelDestinations.map {
+                        ValeNavItem(it.label, it.icon, it.isCenterAction)
+                    },
+                    selectedIndex = topLevelIndex,
+                    onItemSelected = { index ->
+                        navController.navigate(TopLevelDestinations[index].route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Header
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                ValeMascot(size = 96.dp)
-                Text(
-                    text = "VALE",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Prove your math.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            ValeMascotMessage(
-                message = "Great choice! You just avoided a bad purchase.",
-                positive = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            ValeMascotMessage(
-                message = "Hmm… this might not be worth it.",
-                positive = false,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Buttons
-            ValePrimaryButton(
-                text = "Primary Button",
-                onClick = { showDialog = true },
-                modifier = Modifier.fillMaxWidth()
-            )
-            ValeSecondaryButton(
-                text = "Secondary Button",
-                onClick = { showSheet = true },
-                modifier = Modifier.fillMaxWidth()
-            )
-            ValeTextButton(text = "Tertiary / Text Button", onClick = {})
-
-            // Chips
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ValeStatusChip(ValeStatus.Bought)
-                ValeStatusChip(ValeStatus.Considering)
-                ValeStatusChip(ValeStatus.Skipped)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ValeStatusChip(ValeStatus.OnTrack)
-                ValeStatusChip(ValeStatus.StillProvingIt)
-                ValeStatusChip(ValeStatus.NotWorthIt)
-            }
-
-            // Card
-            ValeItemCard(
-                title = "Canvas Tote Bag",
-                price = "₱1,200",
-                perUse = "₱40.00 per use",
-                usesText = "12 / 30 uses",
-                status = ValeStatus.StillProvingIt,
-                thumbnail = { Text("👜", style = MaterialTheme.typography.headlineSmall) },
-                onClick = { showSheet = true }
-            )
-
-            // Inputs
-            ValeInputField(
-                label = "How much is it?",
-                value = amount,
-                onValueChange = { amount = it },
-                placeholder = "₱0",
-                keyboardType = KeyboardType.Number
-            )
-            ValeStepperField(
-                label = "How many times will you use it?",
-                value = uses,
-                onValueChange = { uses = it }
-            )
-        }
-    }
-
-    if (showSheet) {
-        ValeBottomSheet(
-            title = "Let's make it worth it.",
-            subtitle = "What do you want to do with this item?",
-            options = listOf(
-                ValeSheetOption("Keep using it", Icons.Default.Check, StatusOnTrack, MintSoft),
-                ValeSheetOption("Sell it", Icons.Default.ShoppingCart, MaterialTheme.colorScheme.primary, SoftLavender),
-                ValeSheetOption("Give it away", Icons.Default.Favorite, StatusNotWorthIt, PinkSoft),
-            ),
-            onOptionSelected = { showSheet = false },
-            onDismiss = { showSheet = false }
+        ValeNavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.padding(innerPadding)
         )
-    }
-
-    if (showDialog) {
-        ValeDialog(
-            title = "Are you sure?",
-            message = "This action cannot be undone.",
-            confirmText = "Yes, continue",
-            onConfirm = { showDialog = false },
-            onDismiss = { showDialog = false }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ValeShowcasePreview() {
-    ValeTheme {
-        ValeShowcaseScreen()
     }
 }

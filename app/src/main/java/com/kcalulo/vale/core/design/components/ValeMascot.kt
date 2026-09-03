@@ -1,4 +1,4 @@
-package com.kcalulo.vale.ui.components
+package com.kcalulo.vale.core.design.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

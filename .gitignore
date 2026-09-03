@@ -13,3 +13,14 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Product docs & specs — keep out of the public repo
+*.md
+docs/
+
+# Database — schema exports and any local db files
+app/schemas/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite

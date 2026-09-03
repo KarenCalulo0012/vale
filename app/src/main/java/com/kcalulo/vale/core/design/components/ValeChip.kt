@@ -1,4 +1,4 @@
-package com.kcalulo.vale.ui.components
+package com.kcalulo.vale.core.design.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
@@ -9,16 +9,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.kcalulo.vale.ui.theme.StatusBought
-import com.kcalulo.vale.ui.theme.StatusBoughtBg
-import com.kcalulo.vale.ui.theme.StatusConsidering
-import com.kcalulo.vale.ui.theme.StatusConsideringBg
-import com.kcalulo.vale.ui.theme.StatusNotWorthIt
-import com.kcalulo.vale.ui.theme.StatusNotWorthItBg
-import com.kcalulo.vale.ui.theme.StatusOnTrack
-import com.kcalulo.vale.ui.theme.StatusOnTrackBg
-import com.kcalulo.vale.ui.theme.StatusSkipped
-import com.kcalulo.vale.ui.theme.StatusSkippedBg
+import com.kcalulo.vale.core.design.theme.StatusBought
+import com.kcalulo.vale.core.design.theme.StatusBoughtBg
+import com.kcalulo.vale.core.design.theme.StatusConsidering
+import com.kcalulo.vale.core.design.theme.StatusConsideringBg
+import com.kcalulo.vale.core.design.theme.StatusNotWorthIt
+import com.kcalulo.vale.core.design.theme.StatusNotWorthItBg
+import com.kcalulo.vale.core.design.theme.StatusOnTrack
+import com.kcalulo.vale.core.design.theme.StatusOnTrackBg
+import com.kcalulo.vale.core.design.theme.StatusSkipped
+import com.kcalulo.vale.core.design.theme.StatusSkippedBg
 
 /** Item / decision statuses from the style board. */
 enum class ValeStatus(val label: String, val contentColor: Color, val containerColor: Color) {
