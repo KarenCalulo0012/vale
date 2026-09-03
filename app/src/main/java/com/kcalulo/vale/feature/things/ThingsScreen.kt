@@ -35,6 +35,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.ValeCalculations
 import com.kcalulo.vale.core.common.displayCostPerUseMinor
+import com.kcalulo.vale.core.common.summaryLine
+import com.kcalulo.vale.core.design.components.toValeStatus
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.core.design.components.ValeInputField
@@ -157,17 +159,8 @@ private fun ThingRow(row: ItemWithUsageCount, symbol: String, onClick: () -> Uni
         title = item.name,
         price = MoneyFormat.format(item.originalPriceMinor, symbol),
         perUse = costPerUse?.let { "${MoneyFormat.formatPerUse(it, symbol)} per use" } ?: "Not used yet",
-        usesText = when (item.status) {
-            ItemStatus.BOUGHT -> "${row.actualUses} / ${item.expectedUses} uses"
-            ItemStatus.CONSIDERING -> "Planned: ${item.expectedUses} uses"
-            else -> "Skipped — ${MoneyFormat.format(item.originalPriceMinor, symbol)} not spent"
-        },
-        status = when (item.status) {
-            ItemStatus.BOUGHT -> ValeStatus.Bought
-            ItemStatus.CONSIDERING -> ValeStatus.Considering
-            ItemStatus.SKIPPED -> ValeStatus.Skipped
-            else -> null
-        },
+        usesText = item.summaryLine(row.actualUses, symbol),
+        status = item.status.toValeStatus(),
         progress = if (item.status == ItemStatus.BOUGHT) {
             ValeCalculations.progressFraction(row.actualUses, item.expectedUses)
         } else null,

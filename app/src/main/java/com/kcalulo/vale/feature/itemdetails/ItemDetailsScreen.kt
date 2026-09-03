@@ -47,8 +47,10 @@ import com.kcalulo.vale.core.design.components.ValePrimaryButton
 import com.kcalulo.vale.core.design.components.ValeProgressBar
 import com.kcalulo.vale.core.design.components.ValeSecondaryButton
 import com.kcalulo.vale.core.design.components.ValeSkipReasonSheet
-import com.kcalulo.vale.core.design.components.ValeStatus
 import com.kcalulo.vale.core.design.components.ValeStatusChip
+import com.kcalulo.vale.core.design.components.toValeStatus
+import com.kcalulo.vale.feature.realitycheck.GiveAwaySheet
+import com.kcalulo.vale.feature.realitycheck.SellSheet
 
 /** Item Details — the control center for one item (spec §13). */
 @Composable
@@ -69,6 +71,8 @@ fun ItemDetailsScreen(
     var showArchiveConfirm by remember { mutableStateOf(false) }
     var showBuyConfirm by remember { mutableStateOf(false) }
     var showSkipSheet by remember { mutableStateOf(false) }
+    var showSellSheet by remember { mutableStateOf(false) }
+    var showGiveAwaySheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(lastLogged) {
@@ -130,13 +134,7 @@ fun ItemDetailsScreen(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
-                val statusChip = when (item.status) {
-                    ItemStatus.BOUGHT -> ValeStatus.Bought
-                    ItemStatus.CONSIDERING -> ValeStatus.Considering
-                    ItemStatus.SKIPPED -> ValeStatus.Skipped
-                    else -> null
-                }
-                statusChip?.let { ValeStatusChip(it) }
+                item.status.toValeStatus()?.let { ValeStatusChip(it) }
                 if (item.isArchived) {
                     Text(
                         text = "Archived — hidden from your active lists",
@@ -158,7 +156,11 @@ fun ItemDetailsScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = if (item.status == ItemStatus.BOUGHT) "current cost/use" else "target cost/use",
+                        text = when (item.status) {
+                            ItemStatus.BOUGHT -> "current cost/use"
+                            ItemStatus.SOLD -> "final cost/use"
+                            else -> "target cost/use"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -219,11 +221,39 @@ fun ItemDetailsScreen(
 
     if (showMoreSheet) {
         MoreOptionsSheet(
+            // Sell/Give Away only make sense for something you actually own and are tracking
+            // (spec §18/§19) — a Considering or Skipped item hasn't entered that lifecycle yet.
+            showSellGiveAway = item.status == ItemStatus.BOUGHT,
             isArchived = item.isArchived,
+            onSell = { showMoreSheet = false; showSellSheet = true },
+            onGiveAway = { showMoreSheet = false; showGiveAwaySheet = true },
             onArchive = { showMoreSheet = false; showArchiveConfirm = true },
             onUnarchive = { showMoreSheet = false; viewModel.unarchiveItem() },
             onDelete = { showMoreSheet = false; showDeleteConfirm = true },
             onDismiss = { showMoreSheet = false }
+        )
+    }
+
+    if (showSellSheet) {
+        SellSheet(
+            item = item,
+            actualUses = actualUses,
+            symbol = symbol,
+            onSell = { soldPriceMinor ->
+                viewModel.sellItem(soldPriceMinor)
+                showSellSheet = false
+            },
+            onDismiss = { showSellSheet = false }
+        )
+    }
+
+    if (showGiveAwaySheet) {
+        GiveAwaySheet(
+            onConfirm = { note ->
+                viewModel.giveAwayItem(note)
+                showGiveAwaySheet = false
+            },
+            onDismiss = { showGiveAwaySheet = false }
         )
     }
 
@@ -303,6 +333,10 @@ private fun DetailStatsGrid(item: com.kcalulo.vale.core.database.entity.ItemEnti
         StatRow("Expected uses", item.expectedUses.toString())
         StatRow("Target cost/use", MoneyFormat.formatPerUse(item.targetCostPerUseMinor, symbol))
         item.skipReason?.let { StatRow("Why skipped", it.label) }
+        item.soldPriceMinor?.let { StatRow("Sold for", MoneyFormat.format(it, symbol)) }
+        item.soldDate?.let { StatRow("Sold date", it.toString()) }
+        item.givenAwayDate?.let { StatRow("Given away on", it.toString()) }
+        item.note?.let { StatRow("Note", it) }
     }
 }
 
@@ -326,7 +360,10 @@ private fun StatRow(label: String, value: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoreOptionsSheet(
+    showSellGiveAway: Boolean,
     isArchived: Boolean,
+    onSell: () -> Unit,
+    onGiveAway: () -> Unit,
     onArchive: () -> Unit,
     onUnarchive: () -> Unit,
     onDelete: () -> Unit,
@@ -345,8 +382,10 @@ private fun MoreOptionsSheet(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             MoreOptionRow(label = "Edit", subtitle = "Coming soon", onClick = onDismiss)
-            MoreOptionRow(label = "Sell", subtitle = "Coming soon", onClick = onDismiss)
-            MoreOptionRow(label = "Give Away", subtitle = "Coming soon", onClick = onDismiss)
+            if (showSellGiveAway) {
+                MoreOptionRow(label = "Sell", onClick = onSell)
+                MoreOptionRow(label = "Give Away", onClick = onGiveAway)
+            }
             if (isArchived) {
                 MoreOptionRow(label = "Unarchive", onClick = onUnarchive)
             } else {

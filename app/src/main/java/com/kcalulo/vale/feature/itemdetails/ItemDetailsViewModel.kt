@@ -3,15 +3,17 @@ package com.kcalulo.vale.feature.itemdetails
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kcalulo.vale.core.common.asBought
+import com.kcalulo.vale.core.common.asGivenAway
+import com.kcalulo.vale.core.common.asSkipped
+import com.kcalulo.vale.core.common.asSold
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
-import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.core.database.entity.SkipReason
 import com.kcalulo.vale.core.database.entity.UsageEntity
 import com.kcalulo.vale.data.preferences.UserPreferencesRepository
 import com.kcalulo.vale.data.repository.ItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
-import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -84,19 +86,25 @@ class ItemDetailsViewModel @Inject constructor(
     /** Considering → Bought (spec §10: reopen a Considering item and finish deciding). */
     fun markAsBought() {
         val item = itemState.value?.item ?: return
-        viewModelScope.launch {
-            itemRepository.updateItem(
-                item.copy(status = ItemStatus.BOUGHT, purchaseDate = LocalDate.now())
-            )
-        }
+        viewModelScope.launch { itemRepository.updateItem(item.asBought()) }
     }
 
     /** Considering → Skipped (spec §10). */
     fun markAsSkipped(reason: SkipReason?) {
         val item = itemState.value?.item ?: return
-        viewModelScope.launch {
-            itemRepository.updateItem(item.copy(status = ItemStatus.SKIPPED, skipReason = reason))
-        }
+        viewModelScope.launch { itemRepository.updateItem(item.asSkipped(reason)) }
+    }
+
+    /** Sell flow (spec §18) — stops normal usage tracking, preserves full history. */
+    fun sellItem(soldPriceMinor: Long) {
+        val item = itemState.value?.item ?: return
+        viewModelScope.launch { itemRepository.updateItem(item.asSold(soldPriceMinor)) }
+    }
+
+    /** Give Away flow (spec §19) — never treated as profit or savings, just a closed lifecycle. */
+    fun giveAwayItem(note: String?) {
+        val item = itemState.value?.item ?: return
+        viewModelScope.launch { itemRepository.updateItem(item.asGivenAway(note)) }
     }
 
     fun archiveItem() {

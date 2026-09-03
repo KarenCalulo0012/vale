@@ -104,7 +104,7 @@ fun ValeNavHost(
             route = ValeRoutes.REALITY_CHECK,
             arguments = listOf(navArgument("itemId") { type = NavType.LongType })
         ) {
-            RealityCheckScreen()
+            RealityCheckScreen(onBack = { navController.popBackStack() })
         }
         composable(ValeRoutes.SHOWCASE) { ShowcaseScreen() }
     }
