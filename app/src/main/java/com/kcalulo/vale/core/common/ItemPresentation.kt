@@ -37,8 +37,9 @@ fun ItemEntity.summaryLine(actualUses: Int, symbol: String): String = when (stat
     ItemStatus.ARCHIVED -> "Archived"
 }
 
-/** Considering → Bought (spec §10). */
-fun ItemEntity.asBought(): ItemEntity = copy(status = ItemStatus.BOUGHT, purchaseDate = LocalDate.now())
+/** Considering → Bought (spec §10). Defaults to today; spec §9 allows an earlier purchase date. */
+fun ItemEntity.asBought(purchaseDate: LocalDate = LocalDate.now()): ItemEntity =
+    copy(status = ItemStatus.BOUGHT, purchaseDate = purchaseDate)
 
 /** Considering → Skipped (spec §10) or the initial Result-screen skip decision (spec §11). */
 fun ItemEntity.asSkipped(reason: SkipReason?): ItemEntity =

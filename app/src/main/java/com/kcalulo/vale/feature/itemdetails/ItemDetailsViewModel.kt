@@ -3,17 +3,21 @@ package com.kcalulo.vale.feature.itemdetails
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kcalulo.vale.core.common.ValeCalculations
 import com.kcalulo.vale.core.common.asBought
 import com.kcalulo.vale.core.common.asGivenAway
 import com.kcalulo.vale.core.common.asSkipped
 import com.kcalulo.vale.core.common.asSold
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
+import com.kcalulo.vale.core.database.entity.ItemCategory
+import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.core.database.entity.SkipReason
 import com.kcalulo.vale.core.database.entity.UsageEntity
 import com.kcalulo.vale.data.preferences.UserPreferencesRepository
 import com.kcalulo.vale.data.repository.ItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -84,15 +88,42 @@ class ItemDetailsViewModel @Inject constructor(
     }
 
     /** Considering → Bought (spec §10: reopen a Considering item and finish deciding). */
-    fun markAsBought() {
+    fun markAsBought(purchaseDate: LocalDate = LocalDate.now()) {
         val item = itemState.value?.item ?: return
-        viewModelScope.launch { itemRepository.updateItem(item.asBought()) }
+        viewModelScope.launch { itemRepository.updateItem(item.asBought(purchaseDate)) }
     }
 
     /** Considering → Skipped (spec §10). */
     fun markAsSkipped(reason: SkipReason?) {
         val item = itemState.value?.item ?: return
         viewModelScope.launch { itemRepository.updateItem(item.asSkipped(reason)) }
+    }
+
+    /**
+     * Edits a Considering item's name/category/price/expected uses before deciding
+     * (spec §10). Recomputes `targetCostPerUseMinor` from the new numbers — a
+     * Considering item hasn't been bought yet, so there's no frozen promise to protect
+     * (product decision; a Bought item's target stays frozen once set).
+     */
+    fun updateConsideringDetails(
+        name: String,
+        category: ItemCategory?,
+        priceMinor: Long,
+        expectedUses: Int,
+    ) {
+        val item = itemState.value?.item ?: return
+        if (item.status != ItemStatus.CONSIDERING) return
+        viewModelScope.launch {
+            itemRepository.updateItem(
+                item.copy(
+                    name = name,
+                    category = category,
+                    originalPriceMinor = priceMinor,
+                    expectedUses = expectedUses,
+                    targetCostPerUseMinor = ValeCalculations.targetCostPerUse(priceMinor, expectedUses),
+                )
+            )
+        }
     }
 
     /** Sell flow (spec §18) — stops normal usage tracking, preserves full history. */

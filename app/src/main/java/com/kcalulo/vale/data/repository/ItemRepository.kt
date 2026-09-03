@@ -1,6 +1,7 @@
 package com.kcalulo.vale.data.repository
 
 import com.kcalulo.vale.core.database.dao.ItemDao
+import com.kcalulo.vale.core.database.dao.ItemWithLastUse
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.dao.UsageDao
 import com.kcalulo.vale.core.database.entity.ItemEntity
@@ -20,6 +21,7 @@ interface ItemRepository {
     fun observeItem(id: Long): Flow<ItemWithUsageCount?>
     fun searchItems(query: String): Flow<List<ItemWithUsageCount>>
     fun observeCountByStatus(status: ItemStatus): Flow<Int>
+    fun observeBoughtItemsWithLastUse(): Flow<List<ItemWithLastUse>>
     suspend fun saveItem(item: ItemEntity): Long
     suspend fun updateItem(item: ItemEntity)
     suspend fun deleteItem(item: ItemEntity)
@@ -51,6 +53,8 @@ class ItemRepositoryImpl @Inject constructor(
     override fun searchItems(query: String) = itemDao.searchItems(query)
 
     override fun observeCountByStatus(status: ItemStatus) = itemDao.observeCountByStatus(status)
+
+    override fun observeBoughtItemsWithLastUse() = itemDao.observeBoughtItemsWithLastUse()
 
     override suspend fun saveItem(item: ItemEntity): Long {
         val id = itemDao.insert(item)

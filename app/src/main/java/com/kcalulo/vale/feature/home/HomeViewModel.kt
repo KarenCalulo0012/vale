@@ -2,6 +2,8 @@ package com.kcalulo.vale.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kcalulo.vale.core.common.HomeAttention
+import com.kcalulo.vale.core.common.ValeAttention
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.data.preferences.UserPreferencesRepository
@@ -11,6 +13,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class HomeSnapshot(
@@ -24,6 +27,7 @@ data class HomeUiState(
     val recentItems: List<ItemWithUsageCount> = emptyList(),
     val currencySymbol: String = "₱",
     val snapshot: HomeSnapshot = HomeSnapshot(),
+    val attention: HomeAttention = HomeAttention(emptyList(), emptyList(), emptyList()),
 )
 
 @HiltViewModel
@@ -44,16 +48,20 @@ class HomeViewModel @Inject constructor(
         )
     }
 
+    private val attention = itemRepository.observeBoughtItemsWithLastUse().map { ValeAttention.summarize(it) }
+
     val uiState: StateFlow<HomeUiState> = combine(
         itemRepository.observeRecentItems(limit = 5),
         preferencesRepository.preferences,
         statusCounts,
-    ) { recent, prefs, snapshot ->
+        attention,
+    ) { recent, prefs, snapshot, attention ->
         HomeUiState(
             isLoading = false,
             recentItems = recent,
             currencySymbol = prefs.currencySymbol,
             snapshot = snapshot,
+            attention = attention,
         )
     }.stateIn(
         scope = viewModelScope,

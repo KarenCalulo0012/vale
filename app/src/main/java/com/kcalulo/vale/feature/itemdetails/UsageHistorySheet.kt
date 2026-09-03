@@ -1,18 +1,17 @@
 package com.kcalulo.vale.feature.itemdetails
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -31,8 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kcalulo.vale.core.database.entity.UsageEntity
-import com.kcalulo.vale.core.design.components.ValePrimaryButton
-import com.kcalulo.vale.core.design.components.ValeStepperField
+import com.kcalulo.vale.core.design.components.ValeDaysAgoPicker
 import com.kcalulo.vale.core.design.components.ValeTextButton
 import java.time.Instant
 import java.time.LocalDate
@@ -40,16 +39,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val HISTORY_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy · h:mm a")
-
-/** Quick presets for the missed-usage picker, in days-ago terms. */
-private data class DaysAgoPreset(val label: String, val daysAgo: Int)
-
-private val DAYS_AGO_PRESETS = listOf(
-    DaysAgoPreset("Today", 0),
-    DaysAgoPreset("Yesterday", 1),
-    DaysAgoPreset("2 days ago", 2),
-    DaysAgoPreset("3 days ago", 3),
-)
 
 /**
  * Usage History — chronological log, add a missed use, remove an incorrect one (spec §15).
@@ -69,12 +58,15 @@ fun UsageHistorySheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.extraLarge
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -124,7 +116,8 @@ fun UsageHistorySheet(
             }
 
             if (showAddPicker) {
-                MissedUsagePicker(
+                ValeDaysAgoPicker(
+                    title = "When did you use it?",
                     daysAgo = daysAgo,
                     onDaysAgoChange = { daysAgo = it },
                     onConfirm = {
@@ -136,7 +129,8 @@ fun UsageHistorySheet(
                     onCancel = {
                         showAddPicker = false
                         daysAgo = 0
-                    }
+                    },
+                    confirmText = "Add"
                 )
             } else {
                 ValeTextButton(
@@ -145,71 +139,6 @@ fun UsageHistorySheet(
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun MissedUsagePicker(
-    daysAgo: Int,
-    onDaysAgoChange: (Int) -> Unit,
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.large)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "When did you use it?",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            DAYS_AGO_PRESETS.forEach { preset ->
-                val isSelected = preset.daysAgo == daysAgo
-                Text(
-                    text = preset.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surface,
-                            MaterialTheme.shapes.small
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .clickable { onDaysAgoChange(preset.daysAgo) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                )
-            }
-        }
-        ValeStepperField(
-            label = "Or exactly how many days ago?",
-            value = daysAgo,
-            onValueChange = onDaysAgoChange,
-            minValue = 0,
-            maxValue = 3650
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ValePrimaryButton(
-                text = "Add",
-                onClick = onConfirm,
-                modifier = Modifier.weight(1f)
-            )
-            ValeTextButton(text = "Cancel", onClick = onCancel)
         }
     }
 }

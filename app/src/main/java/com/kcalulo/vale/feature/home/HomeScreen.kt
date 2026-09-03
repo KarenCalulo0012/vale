@@ -1,6 +1,7 @@
 package com.kcalulo.vale.feature.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kcalulo.vale.core.common.AttentionItem
+import com.kcalulo.vale.core.common.HomeAttention
 import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.displayCostPerUseMinor
 import com.kcalulo.vale.core.common.summaryLine
@@ -98,6 +101,10 @@ fun HomeScreen(
             MonthlySnapshotRow(snapshot = state.snapshot)
         }
 
+        if (!state.attention.isEmpty) {
+            AttentionSection(attention = state.attention, onItemClick = onItemClick)
+        }
+
         if (state.recentItems.isEmpty() && !state.isLoading) {
             // Empty state
             Column(
@@ -130,6 +137,64 @@ fun HomeScreen(
                     row = row,
                     symbol = state.currencySymbol,
                     onClick = { onItemClick(row.item.id) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * What needs a look right now (spec §6): items going stale, items about to prove
+ * themselves, items ready for their Reality Check. Deliberately terse — one line per
+ * item, no extra chrome — so it doesn't turn Home into a dashboard.
+ */
+@Composable
+private fun AttentionSection(attention: HomeAttention, onItemClick: (Long) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Needs a look",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        AttentionGroup("Haven't touched it in a while", attention.notUsedRecently, onItemClick)
+        AttentionGroup("Almost there", attention.closeToTarget, onItemClick)
+        AttentionGroup("Ready for its Reality Check", attention.readyForRealityCheck, onItemClick)
+    }
+}
+
+@Composable
+private fun AttentionGroup(label: String, items: List<AttentionItem>, onItemClick: (Long) -> Unit) {
+    if (items.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        items.forEach { attentionItem ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                    .clickable { onItemClick(attentionItem.itemId) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = attentionItem.itemName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = attentionItem.detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

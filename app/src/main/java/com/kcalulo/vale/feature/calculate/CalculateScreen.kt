@@ -1,8 +1,6 @@
 package com.kcalulo.vale.feature.calculate
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kcalulo.vale.core.common.MoneyFormat
-import com.kcalulo.vale.core.database.entity.ItemCategory
+import com.kcalulo.vale.core.design.components.ValeCategoryPicker
 import com.kcalulo.vale.core.design.components.ValeInputField
 import com.kcalulo.vale.core.design.components.ValeMascot
 import com.kcalulo.vale.core.design.components.ValePrimaryButton
@@ -88,7 +85,7 @@ fun CalculateScreen(
             onValueChange = viewModel::onExpectedUsesChange
         )
 
-        CategoryPicker(
+        ValeCategoryPicker(
             selected = state.category,
             onSelected = viewModel::onCategoryChange
         )
@@ -124,47 +121,5 @@ fun CalculateScreen(
             onClick = { if (viewModel.validate()) onCalculated() },
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Composable
-private fun CategoryPicker(
-    selected: ItemCategory?,
-    onSelected: (ItemCategory?) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Category (optional)",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ItemCategory.entries.forEach { category ->
-                val isSelected = category == selected
-                Text(
-                    text = "${category.emoji} ${category.label}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surface,
-                            MaterialTheme.shapes.small
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .clickable { onSelected(if (isSelected) null else category) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                )
-            }
-        }
     }
 }

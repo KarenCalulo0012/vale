@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -20,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -28,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,6 +43,7 @@ import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.ValeCalculations
 import com.kcalulo.vale.core.common.displayCostPerUseMinor
 import com.kcalulo.vale.core.database.entity.ItemStatus
+import com.kcalulo.vale.core.design.components.ValeDaysAgoPicker
 import com.kcalulo.vale.core.design.components.ValeDialog
 import com.kcalulo.vale.core.design.components.ValeMascot
 import com.kcalulo.vale.core.design.components.ValePlaceholderScreen
@@ -53,6 +57,7 @@ import com.kcalulo.vale.feature.realitycheck.GiveAwaySheet
 import com.kcalulo.vale.feature.realitycheck.SellSheet
 
 /** Item Details — the control center for one item (spec §13). */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailsScreen(
     onBack: () -> Unit,
@@ -69,10 +74,12 @@ fun ItemDetailsScreen(
     var showUsageHistory by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showArchiveConfirm by remember { mutableStateOf(false) }
-    var showBuyConfirm by remember { mutableStateOf(false) }
+    var showBuyDatePicker by remember { mutableStateOf(false) }
+    var buyDaysAgo by remember { mutableIntStateOf(0) }
     var showSkipSheet by remember { mutableStateOf(false) }
     var showSellSheet by remember { mutableStateOf(false) }
     var showGiveAwaySheet by remember { mutableStateOf(false) }
+    var showEditSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(lastLogged) {
@@ -206,7 +213,7 @@ fun ItemDetailsScreen(
                 // spec §10 — reopen a Considering item and finish deciding.
                 ValePrimaryButton(
                     text = "Yes, I'm buying it",
-                    onClick = { showBuyConfirm = true },
+                    onClick = { showBuyDatePicker = true },
                     modifier = Modifier.fillMaxWidth()
                 )
                 ValeSecondaryButton(
@@ -224,7 +231,11 @@ fun ItemDetailsScreen(
             // Sell/Give Away only make sense for something you actually own and are tracking
             // (spec §18/§19) — a Considering or Skipped item hasn't entered that lifecycle yet.
             showSellGiveAway = item.status == ItemStatus.BOUGHT,
+            // Editing price/expected uses before deciding (spec §10) only makes sense
+            // while an item is still Considering.
+            showEdit = item.status == ItemStatus.CONSIDERING,
             isArchived = item.isArchived,
+            onEdit = { showMoreSheet = false; showEditSheet = true },
             onSell = { showMoreSheet = false; showSellSheet = true },
             onGiveAway = { showMoreSheet = false; showGiveAwaySheet = true },
             onArchive = { showMoreSheet = false; showArchiveConfirm = true },
@@ -280,16 +291,45 @@ fun ItemDetailsScreen(
         )
     }
 
-    if (showBuyConfirm) {
-        ValeDialog(
-            title = "Buying it today?",
-            message = "We'll start counting from today and see if you actually use her.",
-            confirmText = "Yes, bought it!",
-            onConfirm = {
-                showBuyConfirm = false
-                viewModel.markAsBought()
+    if (showBuyDatePicker) {
+        ModalBottomSheet(
+            onDismissRequest = { showBuyDatePicker = false; buyDaysAgo = 0 },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.extraLarge
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                ValeDaysAgoPicker(
+                    title = "When did you buy it? We'll start counting from there.",
+                    daysAgo = buyDaysAgo,
+                    onDaysAgoChange = { buyDaysAgo = it },
+                    onConfirm = {
+                        val date = java.time.LocalDate.now().minusDays(buyDaysAgo.toLong())
+                        showBuyDatePicker = false
+                        buyDaysAgo = 0
+                        viewModel.markAsBought(date)
+                    },
+                    onCancel = { showBuyDatePicker = false; buyDaysAgo = 0 },
+                    confirmText = "Yes, bought it!"
+                )
+            }
+        }
+    }
+
+    if (showEditSheet) {
+        EditConsideringSheet(
+            item = item,
+            symbol = symbol,
+            onSave = { name, category, priceMinor, expectedUses ->
+                viewModel.updateConsideringDetails(name, category, priceMinor, expectedUses)
+                showEditSheet = false
             },
-            onDismiss = { showBuyConfirm = false }
+            onDismiss = { showEditSheet = false }
         )
     }
 
@@ -361,7 +401,9 @@ private fun StatRow(label: String, value: String) {
 @Composable
 private fun MoreOptionsSheet(
     showSellGiveAway: Boolean,
+    showEdit: Boolean,
     isArchived: Boolean,
+    onEdit: () -> Unit,
     onSell: () -> Unit,
     onGiveAway: () -> Unit,
     onArchive: () -> Unit,
@@ -371,17 +413,21 @@ private fun MoreOptionsSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.extraLarge
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            MoreOptionRow(label = "Edit", subtitle = "Coming soon", onClick = onDismiss)
+            if (showEdit) {
+                MoreOptionRow(label = "Edit", onClick = onEdit)
+            }
             if (showSellGiveAway) {
                 MoreOptionRow(label = "Sell", onClick = onSell)
                 MoreOptionRow(label = "Give Away", onClick = onGiveAway)

@@ -9,12 +9,20 @@ import androidx.room.Query
 import androidx.room.Update
 import com.kcalulo.vale.core.database.entity.ItemEntity
 import com.kcalulo.vale.core.database.entity.ItemStatus
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 /** Item row joined with its live usage count — derived, never persisted. */
 data class ItemWithUsageCount(
     @Embedded val item: ItemEntity,
     val actualUses: Int,
+)
+
+/** Bought-item row with its last usage timestamp — Home's Attention section (spec §6). */
+data class ItemWithLastUse(
+    @Embedded val item: ItemEntity,
+    val actualUses: Int,
+    val lastUsedAt: Instant?,
 )
 
 private const val ITEM_WITH_USES =
@@ -62,4 +70,13 @@ interface ItemDao {
 
     @Query("SELECT COUNT(*) FROM items WHERE status = :status")
     fun observeCountByStatus(status: ItemStatus): Flow<Int>
+
+    /** Bought items with their last usage timestamp — Home's Attention section (spec §6). */
+    @Query(
+        "SELECT items.*, " +
+            "(SELECT COUNT(*) FROM usages WHERE usages.itemId = items.id) AS actualUses, " +
+            "(SELECT MAX(usedAt) FROM usages WHERE usages.itemId = items.id) AS lastUsedAt " +
+            "FROM items WHERE items.status = 'BOUGHT' AND items.isArchived = 0"
+    )
+    fun observeBoughtItemsWithLastUse(): Flow<List<ItemWithLastUse>>
 }

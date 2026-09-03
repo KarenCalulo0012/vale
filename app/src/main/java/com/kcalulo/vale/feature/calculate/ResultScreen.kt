@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -25,14 +28,19 @@ import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.ResultVerdict
 import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.core.database.entity.SkipReason
+import com.kcalulo.vale.core.design.components.ValeDaysAgoPicker
 import com.kcalulo.vale.core.design.components.ValeDialog
 import com.kcalulo.vale.core.design.components.ValeMascotMessage
 import com.kcalulo.vale.core.design.components.ValePrimaryButton
 import com.kcalulo.vale.core.design.components.ValeSecondaryButton
 import com.kcalulo.vale.core.design.components.ValeSkipReasonSheet
 import com.kcalulo.vale.core.design.components.ValeTextButton
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.rememberModalBottomSheetState
+import java.time.LocalDate
 
 /** Result / Decide — turn a calculation into an intentional decision (spec §8). */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultScreen(
     viewModel: CalculateViewModel,
@@ -44,7 +52,8 @@ fun ResultScreen(
     val decision by viewModel.decisionState.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
 
-    var showBuyConfirm by remember { mutableStateOf(false) }
+    var showBuyDatePicker by remember { mutableStateOf(false) }
+    var buyDaysAgo by remember { mutableIntStateOf(0) }
     var showSkipSheet by remember { mutableStateOf(false) }
 
     Column(
@@ -107,7 +116,7 @@ fun ResultScreen(
 
         ValePrimaryButton(
             text = "Yes, I'm buying it",
-            onClick = { showBuyConfirm = true },
+            onClick = { showBuyDatePicker = true },
             modifier = Modifier.fillMaxWidth()
         )
         ValeSecondaryButton(
@@ -121,17 +130,34 @@ fun ResultScreen(
         )
     }
 
-    if (showBuyConfirm) {
-        ValeDialog(
-            title = "Buying it today?",
-            message = "We'll start counting from today and see if you actually use her.",
-            confirmText = "Yes, bought it!",
-            onConfirm = {
-                showBuyConfirm = false
-                viewModel.saveDecision(ItemStatus.BOUGHT)
-            },
-            onDismiss = { showBuyConfirm = false }
-        )
+    if (showBuyDatePicker) {
+        ModalBottomSheet(
+            onDismissRequest = { showBuyDatePicker = false; buyDaysAgo = 0 },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.extraLarge
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                ValeDaysAgoPicker(
+                    title = "When did you buy it? We'll start counting from there.",
+                    daysAgo = buyDaysAgo,
+                    onDaysAgoChange = { buyDaysAgo = it },
+                    onConfirm = {
+                        val date = LocalDate.now().minusDays(buyDaysAgo.toLong())
+                        showBuyDatePicker = false
+                        buyDaysAgo = 0
+                        viewModel.saveDecision(ItemStatus.BOUGHT, purchaseDate = date)
+                    },
+                    onCancel = { showBuyDatePicker = false; buyDaysAgo = 0 },
+                    confirmText = "Yes, bought it!"
+                )
+            }
+        }
     }
 
     if (showSkipSheet) {

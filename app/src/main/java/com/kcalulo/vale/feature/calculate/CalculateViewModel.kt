@@ -104,8 +104,12 @@ class CalculateViewModel @Inject constructor(
         return nameError == null && priceError == null
     }
 
-    /** Persists the calculation with the chosen decision (spec §8–§11). */
-    fun saveDecision(status: ItemStatus, skipReason: SkipReason? = null) {
+    /**
+     * Persists the calculation with the chosen decision (spec §8–§11). [purchaseDate]
+     * only applies when buying — spec §9 allows an earlier date than today, defaulting
+     * to today when not given.
+     */
+    fun saveDecision(status: ItemStatus, skipReason: SkipReason? = null, purchaseDate: LocalDate? = null) {
         val state = _uiState.value
         val priceMinor = state.priceMinor ?: return
         viewModelScope.launch {
@@ -114,7 +118,7 @@ class CalculateViewModel @Inject constructor(
                     name = state.name.trim(),
                     category = state.category,
                     originalPriceMinor = priceMinor,
-                    purchaseDate = if (status == ItemStatus.BOUGHT) LocalDate.now() else null,
+                    purchaseDate = if (status == ItemStatus.BOUGHT) (purchaseDate ?: LocalDate.now()) else null,
                     createdAt = Instant.now(),
                     expectedUses = state.expectedUses,
                     targetCostPerUseMinor = ValeCalculations.targetCostPerUse(
