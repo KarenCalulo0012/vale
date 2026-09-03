@@ -32,6 +32,7 @@ fun ValeInputField(
     placeholder: String = "",
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
+    errorText: String? = null,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -48,6 +49,8 @@ fun ValeInputField(
             },
             shape = MaterialTheme.shapes.medium,
             singleLine = singleLine,
+            isError = errorText != null,
+            supportingText = errorText?.let { { Text(it) } },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,

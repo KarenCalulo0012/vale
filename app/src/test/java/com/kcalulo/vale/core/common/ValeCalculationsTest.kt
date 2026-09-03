@@ -116,6 +116,26 @@ class ValeCalculationsTest {
         assertNull(ValeCalculations.finalCostPerUse(50_000, 0))
     }
 
+    // Result verdicts (deterministic, no AI)
+
+    @Test
+    fun `many expected uses is approved`() {
+        assertEquals(ResultVerdict.APPROVED, ValeCalculations.resultVerdict(20))
+        assertEquals(ResultVerdict.APPROVED, ValeCalculations.resultVerdict(100))
+    }
+
+    @Test
+    fun `moderate expected uses is neutral`() {
+        assertEquals(ResultVerdict.NEUTRAL, ValeCalculations.resultVerdict(5))
+        assertEquals(ResultVerdict.NEUTRAL, ValeCalculations.resultVerdict(19))
+    }
+
+    @Test
+    fun `very few expected uses is questionable`() {
+        assertEquals(ResultVerdict.QUESTIONABLE, ValeCalculations.resultVerdict(1))
+        assertEquals(ResultVerdict.QUESTIONABLE, ValeCalculations.resultVerdict(4))
+    }
+
     // Reality Check verdicts
 
     @Test

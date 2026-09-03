@@ -62,11 +62,13 @@ fun ValeDialog(
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 )
-                ValeSecondaryButton(
-                    text = cancelText,
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (cancelText.isNotEmpty()) {
+                    ValeSecondaryButton(
+                        text = cancelText,
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

@@ -17,6 +17,21 @@ enum class RealityCheckState {
 }
 
 /**
+ * Deterministic Result verdict (spec §8). Copy and mascot vary by verdict;
+ * it never pretends cost/use alone decides whether an item is good.
+ */
+enum class ResultVerdict {
+    /** A solid usage commitment — the math looks believable. */
+    APPROVED,
+
+    /** Nothing suspicious, but the item still has to prove itself. */
+    NEUTRAL,
+
+    /** Very few expected uses — is this purchase really about the math? */
+    QUESTIONABLE,
+}
+
+/**
  * Pure business rules for VALE (spec §27). All money values are in minor
  * currency units (e.g. centavos) as Long; cost-per-use values are Double
  * minor units so fractions like ₱62.50 survive.
@@ -80,6 +95,22 @@ object ValeCalculations {
     /** `finalCostPerUse = effectiveCost / actualUses`; null when there are no uses. */
     fun finalCostPerUse(effectiveCostMinor: Long, actualUses: Int): Double? =
         currentCostPerUse(effectiveCostMinor, actualUses)
+
+    /** Expected uses at or above this reads as a real commitment. */
+    const val VERDICT_APPROVED_MIN_USES: Int = 20
+
+    /** Expected uses below this looks like wishful math. */
+    const val VERDICT_QUESTIONABLE_MAX_USES: Int = 5
+
+    /**
+     * Deterministic Result verdict from the planned usage commitment (no AI in V1).
+     * A simple, honest heuristic: many planned uses → approved, very few → questionable.
+     */
+    fun resultVerdict(expectedUses: Int): ResultVerdict = when {
+        expectedUses >= VERDICT_APPROVED_MIN_USES -> ResultVerdict.APPROVED
+        expectedUses < VERDICT_QUESTIONABLE_MAX_USES -> ResultVerdict.QUESTIONABLE
+        else -> ResultVerdict.NEUTRAL
+    }
 
     /**
      * Deterministic Reality Check verdict (no AI in V1, spec §8/§16):

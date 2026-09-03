@@ -16,12 +16,11 @@ object ValeRoutes {
     const val CALCULATE = "calculate"
     const val TRACK = "track"
     const val PROGRESS = "progress"
-    const val RESULT = "result/{itemId}"
+    const val RESULT = "result"
     const val ITEM_DETAILS = "item/{itemId}"
     const val REALITY_CHECK = "realitycheck/{itemId}"
     const val SHOWCASE = "showcase"
 
-    fun result(itemId: Long) = "result/$itemId"
     fun itemDetails(itemId: Long) = "item/$itemId"
     fun realityCheck(itemId: Long) = "realitycheck/$itemId"
 }
