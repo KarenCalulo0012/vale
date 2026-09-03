@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Item card, e.g. "Canvas Tote Bag — ₱1,200, ₱40.00 per use, 12 / 30 uses".
- * [thumbnail] slot takes an image or emoji placeholder; [status] renders the badge.
+ * [thumbnail] slot takes an image or emoji placeholder; [status] renders the badge;
+ * [progress] renders a usage bar (0..1) when non-null; [actionButton] renders a
+ * full-width slot below everything, e.g. Track's "+ Used it".
  */
 @Composable
 fun ValeItemCard(
@@ -32,6 +34,8 @@ fun ValeItemCard(
     status: ValeStatus? = null,
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    progress: Float? = null,
+    actionButton: (@Composable () -> Unit)? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -43,50 +47,58 @@ fun ValeItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         onClick = onClick ?: {}
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        MaterialTheme.shapes.medium
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                thumbnail?.invoke()
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.shapes.medium
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    thumbnail?.invoke()
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     Text(
-                        text = price,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium
                     )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = price,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = perUse,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Text(
-                        text = perUse,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = usesText,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    text = usesText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                status?.let { ValeStatusChip(it) }
             }
-            status?.let { ValeStatusChip(it) }
+            if (progress != null) {
+                ValeProgressBar(progress = progress, modifier = Modifier.fillMaxWidth())
+            }
+            actionButton?.invoke()
         }
     }
 }

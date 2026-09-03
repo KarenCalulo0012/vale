@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kcalulo.vale.core.common.MoneyFormat
-import com.kcalulo.vale.core.common.ValeCalculations
+import com.kcalulo.vale.core.common.displayCostPerUseMinor
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.core.design.components.ValeItemCard
@@ -36,6 +36,7 @@ import com.kcalulo.vale.core.design.components.ValeStatus
 @Composable
 fun HomeScreen(
     onCalculateClick: () -> Unit,
+    onItemClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -119,19 +120,20 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.onBackground
             )
             state.recentItems.forEach { row ->
-                RecentItemCard(row = row, symbol = state.currencySymbol)
+                RecentItemCard(
+                    row = row,
+                    symbol = state.currencySymbol,
+                    onClick = { onItemClick(row.item.id) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun RecentItemCard(row: ItemWithUsageCount, symbol: String) {
+private fun RecentItemCard(row: ItemWithUsageCount, symbol: String, onClick: () -> Unit) {
     val item = row.item
-    val costPerUse = when (item.status) {
-        ItemStatus.BOUGHT -> ValeCalculations.currentCostPerUse(item.originalPriceMinor, row.actualUses)
-        else -> item.targetCostPerUseMinor
-    }
+    val costPerUse = item.displayCostPerUseMinor(row.actualUses)
     ValeItemCard(
         title = item.name,
         price = MoneyFormat.format(item.originalPriceMinor, symbol),
@@ -154,6 +156,7 @@ private fun RecentItemCard(row: ItemWithUsageCount, symbol: String) {
                 text = item.category?.emoji ?: "🛍️",
                 style = MaterialTheme.typography.headlineSmall
             )
-        }
+        },
+        onClick = onClick
     )
 }

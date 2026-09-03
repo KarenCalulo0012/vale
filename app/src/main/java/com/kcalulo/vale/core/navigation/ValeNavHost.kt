@@ -6,13 +6,16 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.kcalulo.vale.core.design.ShowcaseScreen
 import com.kcalulo.vale.feature.calculate.CalculateScreen
 import com.kcalulo.vale.feature.calculate.CalculateViewModel
 import com.kcalulo.vale.feature.calculate.ResultScreen
 import com.kcalulo.vale.feature.home.HomeScreen
+import com.kcalulo.vale.feature.itemdetails.ItemDetailsScreen
 import com.kcalulo.vale.feature.onboarding.OnboardingScreen
 import com.kcalulo.vale.feature.progress.ProgressScreen
 import com.kcalulo.vale.feature.realitycheck.RealityCheckScreen
@@ -43,10 +46,15 @@ fun ValeNavHost(
             HomeScreen(
                 onCalculateClick = {
                     navController.navigate(ValeRoutes.CALCULATE) { launchSingleTop = true }
-                }
+                },
+                onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) }
             )
         }
-        composable(ValeRoutes.THINGS) { ThingsScreen() }
+        composable(ValeRoutes.THINGS) {
+            ThingsScreen(
+                onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) }
+            )
+        }
         composable(ValeRoutes.CALCULATE) {
             CalculateScreen(
                 onCalculated = { navController.navigate(ValeRoutes.RESULT) }
@@ -70,9 +78,27 @@ fun ValeNavHost(
                 }
             )
         }
-        composable(ValeRoutes.TRACK) { TrackScreen() }
+        composable(ValeRoutes.TRACK) {
+            TrackScreen(
+                onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) }
+            )
+        }
         composable(ValeRoutes.PROGRESS) { ProgressScreen() }
-        composable(ValeRoutes.REALITY_CHECK) { RealityCheckScreen() }
+        composable(
+            route = ValeRoutes.ITEM_DETAILS,
+            arguments = listOf(navArgument("itemId") { type = NavType.LongType })
+        ) {
+            ItemDetailsScreen(
+                onBack = { navController.popBackStack() },
+                onRealityCheck = { id -> navController.navigate(ValeRoutes.realityCheck(id)) }
+            )
+        }
+        composable(
+            route = ValeRoutes.REALITY_CHECK,
+            arguments = listOf(navArgument("itemId") { type = NavType.LongType })
+        ) {
+            RealityCheckScreen()
+        }
         composable(ValeRoutes.SHOWCASE) { ShowcaseScreen() }
     }
 }
