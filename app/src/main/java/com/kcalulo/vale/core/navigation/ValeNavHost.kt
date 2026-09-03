@@ -75,6 +75,13 @@ fun ValeNavHost(
                         }
                         launchSingleTop = true
                     }
+                },
+                onViewItem = { id ->
+                    navController.navigate(ValeRoutes.itemDetails(id)) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = false
+                        }
+                    }
                 }
             )
         }

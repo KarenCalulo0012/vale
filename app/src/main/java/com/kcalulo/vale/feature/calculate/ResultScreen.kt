@@ -37,6 +37,7 @@ import com.kcalulo.vale.core.design.components.ValeTextButton
 fun ResultScreen(
     viewModel: CalculateViewModel,
     onDecided: () -> Unit,
+    onViewItem: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -152,13 +153,15 @@ fun ResultScreen(
             else ->
                 "YOU RESISTED. 🥹" to "Future You is screaming. That's ${state.priceMinor?.let { MoneyFormat.format(it, symbol) } ?: "money"} of purchases skipped."
         }
+        // spec §9 — after buying, the CTA leads into tracking rather than just dismissing.
+        val confirmText = if (saved.status == ItemStatus.BOUGHT) "View Item" else "Done"
         ValeDialog(
             title = title,
             message = message,
-            confirmText = "Done",
+            confirmText = confirmText,
             onConfirm = {
                 viewModel.startOver()
-                onDecided()
+                if (saved.status == ItemStatus.BOUGHT) onViewItem(saved.itemId) else onDecided()
             },
             onDismiss = {
                 viewModel.startOver()
