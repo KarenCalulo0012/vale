@@ -26,6 +26,7 @@ import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.ProgressHighlight
 import com.kcalulo.vale.core.common.ProgressMonthlySnapshot
 import com.kcalulo.vale.core.common.ProgressOverview
+import com.kcalulo.vale.core.design.components.ValeEmptyState
 
 /** Progress — monthly stats, highlights, achievements (spec §20–21). */
 @Composable
@@ -40,6 +41,21 @@ fun ProgressScreen(
     val overview = state.overview ?: return
     val monthly = state.monthlySnapshot ?: return
     val highlights = state.highlights
+
+    if (overview.thingsChecked == 0) {
+        Column(modifier = modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Text(
+                text = "Progress",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            ValeEmptyState(
+                title = "Nothing to show yet.",
+                subtitle = "Calculate and decide on a few things, and your progress will show up here."
+            )
+        }
+        return
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),

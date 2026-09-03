@@ -2,7 +2,7 @@ package com.kcalulo.vale.feature.things
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,7 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,9 +41,9 @@ import com.kcalulo.vale.core.common.summaryLine
 import com.kcalulo.vale.core.design.components.toValeStatus
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.entity.ItemStatus
+import com.kcalulo.vale.core.design.components.ValeEmptyState
 import com.kcalulo.vale.core.design.components.ValeInputField
 import com.kcalulo.vale.core.design.components.ValeItemCard
-import com.kcalulo.vale.core.design.components.ValeMascot
 import com.kcalulo.vale.core.design.components.ValeStatus
 
 /** Things — every evaluated item, filterable and searchable (spec §12). */
@@ -92,12 +92,15 @@ fun ThingsScreen(
 
         when {
             state.isLoading -> Unit
-            state.items.isEmpty() && !state.hasAnyItems -> EmptyThings()
-            state.items.isEmpty() && state.query.isNotBlank() -> EmptyState(
+            state.items.isEmpty() && !state.hasAnyItems -> ValeEmptyState(
+                title = "Nothing here yet.",
+                subtitle = "Calculate your first item and Vale will keep the receipts. 🧾"
+            )
+            state.items.isEmpty() && state.query.isNotBlank() -> ValeEmptyState(
                 title = "No matches",
                 subtitle = "Nothing named \"${state.query}\". Try another search."
             )
-            state.items.isEmpty() -> EmptyState(
+            state.items.isEmpty() -> ValeEmptyState(
                 title = "Nothing here",
                 subtitle = "No ${state.filter.label.lowercase()} things yet."
             )
@@ -146,7 +149,11 @@ private fun FilterRow(selected: ThingsFilter, onSelected: (ThingsFilter) -> Unit
                         else MaterialTheme.colorScheme.outline,
                         shape = MaterialTheme.shapes.small
                     )
-                    .clickable { onSelected(filter) }
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { onSelected(filter) }
+                    )
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             )
         }
@@ -171,38 +178,6 @@ private fun ThingRow(row: ItemWithUsageCount, symbol: String, onClick: () -> Uni
         },
         onClick = onClick
     )
-}
-
-@Composable
-private fun EmptyThings() {
-    EmptyState(
-        title = "Nothing here yet.",
-        subtitle = "Calculate your first item and Vale will keep the receipts. 🧾"
-    )
-}
-
-@Composable
-private fun EmptyState(title: String, subtitle: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ValeMascot(size = 64.dp)
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -246,7 +221,11 @@ private fun SortSheet(
                             else MaterialTheme.colorScheme.surface,
                             MaterialTheme.shapes.medium
                         )
-                        .clickable { onSelected(sort) }
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.RadioButton,
+                            onClick = { onSelected(sort) }
+                        )
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 )
             }

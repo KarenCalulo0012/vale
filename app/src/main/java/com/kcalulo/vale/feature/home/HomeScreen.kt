@@ -20,6 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +38,7 @@ import com.kcalulo.vale.core.design.components.toValeStatus
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.entity.ItemStatus
 import com.kcalulo.vale.core.design.components.ValeChip
+import com.kcalulo.vale.core.design.components.ValeEmptyState
 import com.kcalulo.vale.core.design.components.ValeItemCard
 import com.kcalulo.vale.core.design.components.ValeMascot
 import com.kcalulo.vale.core.design.components.ValePrimaryButton
@@ -113,26 +118,10 @@ fun HomeScreen(
         }
 
         if (state.recentItems.isEmpty() && !state.isLoading) {
-            // Empty state
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Nothing here yet.",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "Calculate your first item and Vale will keep the receipts. 🧾",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
+            ValeEmptyState(
+                title = "Nothing here yet.",
+                subtitle = "Calculate your first item and Vale will keep the receipts. 🧾"
+            )
         } else if (state.recentItems.isNotEmpty()) {
             Text(
                 text = "Recent Things",
@@ -213,7 +202,9 @@ private fun AttentionGroup(
                     text = items.size.toString(),
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     containerColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onSeeAll(reason) }
+                    modifier = Modifier
+                        .clickable { onSeeAll(reason) }
+                        .semantics { role = Role.Button }
                 )
             }
         }
@@ -223,6 +214,10 @@ private fun AttentionGroup(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
                     .clickable { onItemClick(attentionItem.itemId) }
+                    .semantics(mergeDescendants = true) {
+                        role = Role.Button
+                        contentDescription = "${attentionItem.itemName}, ${attentionItem.detail}"
+                    }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -245,6 +240,7 @@ private fun AttentionGroup(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .clickable { onSeeAll(reason) }
+                    .semantics { role = Role.Button }
                     .padding(vertical = 4.dp)
             )
         }

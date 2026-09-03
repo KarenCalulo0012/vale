@@ -1,7 +1,7 @@
 package com.kcalulo.vale.feature.track
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,8 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,8 +48,8 @@ import com.kcalulo.vale.core.common.ValeCalculations
 import com.kcalulo.vale.core.common.displayCostPerUseMinor
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.design.components.ValeChip
+import com.kcalulo.vale.core.design.components.ValeEmptyState
 import com.kcalulo.vale.core.design.components.ValeItemCard
-import com.kcalulo.vale.core.design.components.ValeMascot
 
 /** Track — one-tap usage logging for bought items (spec §14). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,30 +104,14 @@ fun TrackScreen(
             }
 
             if (items.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ValeMascot(size = 64.dp)
-                    Text(
-                        text = if (filter != TrackFilter.ALL) "Nothing here for this filter" else "Nothing to track yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = if (filter != TrackFilter.ALL) {
-                            "Every bought item has cleared this one — nice."
-                        } else {
-                            "Buy something from Calculate and it'll show up here."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                ValeEmptyState(
+                    title = if (filter != TrackFilter.ALL) "Nothing here for this filter" else "Nothing to track yet",
+                    subtitle = if (filter != TrackFilter.ALL) {
+                        "Every bought item has cleared this one — nice."
+                    } else {
+                        "Buy something from Calculate and it'll show up here."
+                    }
+                )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(items, key = { it.item.id }) { row ->
@@ -223,14 +207,13 @@ private fun FilterChipRow(filter: TrackFilter, onClear: () -> Unit) {
             contentColor = MaterialTheme.colorScheme.onPrimary,
             containerColor = MaterialTheme.colorScheme.primary
         )
-        Icon(
-            imageVector = Icons.Default.Close,
-            contentDescription = "Clear filter",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clickable(onClick = onClear)
-                .padding(4.dp)
-        )
+        IconButton(onClick = onClear) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Clear filter",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -269,7 +252,11 @@ private fun FilterSheet(
                             else MaterialTheme.colorScheme.surfaceVariant,
                             MaterialTheme.shapes.medium
                         )
-                        .clickable { onSelected(option) }
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.RadioButton,
+                            onClick = { onSelected(option) }
+                        )
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
                     Text(
@@ -312,7 +299,7 @@ private fun TrackRow(
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
@@ -328,7 +315,7 @@ private fun TrackRow(
                     onClick = onLogUsage,
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
