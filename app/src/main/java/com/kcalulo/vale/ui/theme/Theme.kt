@@ -1,58 +1,86 @@
 package com.kcalulo.vale.ui.theme
 
-import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = PrimaryPurple,
     onPrimary = Color.White,
+    primaryContainer = SoftLavender,
+    onPrimaryContainer = PurpleDeep,
+    secondary = ValePink,
     onSecondary = Color.White,
+    secondaryContainer = PinkSoft,
+    onSecondaryContainer = StatusNotWorthIt,
+    tertiary = MintGreen,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiaryContainer = MintSoft,
+    onTertiaryContainer = StatusOnTrack,
+    background = ValeLight,
+    onBackground = NeutralDark,
+    surface = Color.White,
+    onSurface = NeutralDark,
+    surfaceVariant = SoftLavender,
+    onSurfaceVariant = NeutralGray,
+    outline = LavenderMid,
+    outlineVariant = GraySoft,
+    error = StatusNotWorthIt,
+    onError = Color.White,
+    errorContainer = PinkSoft,
+    onErrorContainer = StatusNotWorthIt,
+    surfaceTint = PrimaryPurple,
+    inverseSurface = NeutralDark,
+    inverseOnSurface = ValeLight,
+    inversePrimary = PurpleBright,
+    scrim = NeutralDark,
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = PurpleBright,
+    onPrimary = Color.White,
+    primaryContainer = LavenderDark,
+    onPrimaryContainer = LavenderMid,
+    secondary = ValePink,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFF4A2A3A),
+    onSecondaryContainer = Color(0xFFFFB3D1),
+    tertiary = MintGreen,
+    onTertiary = NeutralDark,
+    tertiaryContainer = Color(0xFF1E3B31),
+    onTertiaryContainer = Color(0xFF8AE6C3),
+    background = DarkBackground,
+    onBackground = Color(0xFFF2EFF8),
+    surface = DarkSurface,
+    onSurface = Color(0xFFF2EFF8),
+    surfaceVariant = DarkSurfaceHigh,
+    onSurfaceVariant = Color(0xFFB4AFC4),
+    outline = Color(0xFF4C4560),
+    outlineVariant = Color(0xFF332E44),
+    error = Color(0xFFFF8AB8),
+    onError = NeutralDark,
+    errorContainer = Color(0xFF4A2A3A),
+    onErrorContainer = Color(0xFFFFB3D1),
+    surfaceTint = PurpleBright,
+    inverseSurface = Color(0xFFF2EFF8),
+    inverseOnSurface = NeutralDark,
+    inversePrimary = PrimaryPurple,
+    scrim = Color.Black,
 )
 
 @Composable
 fun ValeTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+    // Dynamic color is intentionally disabled — Vale always wears its own brand purple.
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }

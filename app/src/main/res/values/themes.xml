@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Vale" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Vale" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/vale_light</item>
+    </style>
+
+    <!-- Splash screen — soft lavender with the Vale mascot -->
+    <style name="Theme.Vale.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/vale_soft_lavender</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_vale_mascot</item>
+        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="postSplashScreenTheme">@style/Theme.Vale</item>
+    </style>
 </resources>
