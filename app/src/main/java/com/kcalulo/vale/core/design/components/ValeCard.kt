@@ -15,14 +15,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 
 /**
  * Item card, e.g. "Canvas Tote Bag — ₱1,200, ₱40.00 per use, 12 / 30 uses".
  * [thumbnail] slot takes an image or emoji placeholder; [status] renders the badge;
- * [progress] renders a usage bar (0..1) when non-null; [actionButton] renders a
- * full-width slot below everything, e.g. Track's "+ Used it".
+ * [trailingAction] renders a compact slot in the header row, e.g. Track's circular
+ * "+ used it" button; [progress] renders a usage bar (0..1) when non-null, tinted
+ * [progressColor]; [actionButton] renders a full-width slot below everything instead,
+ * for callers that need more room than [trailingAction] offers.
  */
 @Composable
 fun ValeItemCard(
@@ -35,6 +39,9 @@ fun ValeItemCard(
     thumbnail: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     progress: Float? = null,
+    progressColor: Color = MaterialTheme.colorScheme.primary,
+    priceStrikethrough: Boolean = false,
+    trailingAction: (@Composable () -> Unit)? = null,
     actionButton: (@Composable () -> Unit)? = null,
 ) {
     Card(
@@ -79,7 +86,12 @@ fun ValeItemCard(
                             text = price,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (priceStrikethrough) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                            textDecoration = if (priceStrikethrough) TextDecoration.LineThrough else null
                         )
                         Text(
                             text = perUse,
@@ -94,9 +106,14 @@ fun ValeItemCard(
                     )
                 }
                 status?.let { ValeStatusChip(it) }
+                trailingAction?.invoke()
             }
             if (progress != null) {
-                ValeProgressBar(progress = progress, modifier = Modifier.fillMaxWidth())
+                ValeProgressBar(
+                    progress = progress,
+                    color = progressColor,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             actionButton?.invoke()
         }

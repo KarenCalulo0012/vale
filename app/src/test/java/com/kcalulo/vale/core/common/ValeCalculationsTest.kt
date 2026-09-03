@@ -1,8 +1,10 @@
 package com.kcalulo.vale.core.common
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -64,6 +66,23 @@ class ValeCalculationsTest {
     @Test
     fun `progress with zero expected uses is zero not NaN`() {
         assertEquals(0f, ValeCalculations.progress(5, 0), 0f)
+    }
+
+    // isCompleted = progress >= 100%
+
+    @Test
+    fun `isCompleted is false below the target`() {
+        assertFalse(ValeCalculations.isCompleted(9, 10))
+    }
+
+    @Test
+    fun `isCompleted is true exactly at the target`() {
+        assertTrue(ValeCalculations.isCompleted(10, 10))
+    }
+
+    @Test
+    fun `isCompleted stays true past the target`() {
+        assertTrue(ValeCalculations.isCompleted(15, 10))
     }
 
     @Test

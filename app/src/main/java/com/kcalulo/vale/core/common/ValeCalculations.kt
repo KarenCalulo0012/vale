@@ -67,6 +67,10 @@ object ValeCalculations {
     fun progressFraction(actualUses: Int, expectedUses: Int): Float =
         progress(actualUses, expectedUses).coerceIn(0f, 1f)
 
+    /** An item has "completed" its usage commitment once actual uses reach the target. */
+    fun isCompleted(actualUses: Int, expectedUses: Int): Boolean =
+        progress(actualUses, expectedUses) >= 1f
+
     /** `remainingUses = max(expectedUses - actualUses, 0)` */
     fun remainingUses(expectedUses: Int, actualUses: Int): Int =
         (expectedUses - actualUses).coerceAtLeast(0)
