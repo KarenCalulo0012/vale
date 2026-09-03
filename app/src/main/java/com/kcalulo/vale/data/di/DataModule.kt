@@ -33,9 +33,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ValeDatabase =
         Room.databaseBuilder(context, ValeDatabase::class.java, ValeDatabase.NAME)
-            // Pre-release: no installs to preserve yet. Replace with a real Migration
-            // before release (tracked in docs/BACKLOG.md, spec §32 Phase 5).
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addMigrations(*ValeDatabase.ALL_MIGRATIONS)
             .build()
 
     @Provides
