@@ -80,7 +80,13 @@ private fun ValeAppScaffold(
     val currentDestination = backStackEntry?.destination
 
     val topLevelIndex = TopLevelDestinations.indexOfFirst { dest ->
-        currentDestination?.hierarchy?.any { it.route == dest.route } == true
+        currentDestination?.hierarchy?.any { entry ->
+            // Home's Attention deep link (spec §6) lands on a separate route from the plain
+            // Track tab (see ValeRoutes.TRACK_FILTERED_PATTERN) — still counts as the Track
+            // tab for bottom-bar highlighting, even though the route string differs.
+            entry.route == dest.route ||
+                (dest.route == ValeRoutes.TRACK && entry.route == ValeRoutes.TRACK_FILTERED_PATTERN)
+        } == true
     }
     val showBottomBar = topLevelIndex >= 0
 

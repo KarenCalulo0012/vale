@@ -106,4 +106,38 @@ class ValeAttentionTest {
         val attention = ValeAttention.summarize(emptyList())
         assertTrue(attention.isEmpty)
     }
+
+    // matches() must agree with summarize() — Track's filter reuses the same rule Home shows.
+
+    @Test
+    fun `matches agrees with summarize for close to target`() {
+        val today = LocalDate.now()
+        val entry = row(item(expectedUses = 10, purchaseDate = today), actualUses = 8)
+        assertTrue(ValeAttention.matches(entry, AttentionReason.CLOSE_TO_TARGET, today))
+        assertTrue(ValeAttention.summarize(listOf(entry), today).closeToTarget.isNotEmpty())
+    }
+
+    @Test
+    fun `matches agrees with summarize for not used recently`() {
+        val today = LocalDate.now()
+        val entry = row(item(purchaseDate = today.minusDays(ValeAttention.NOT_USED_RECENTLY_DAYS)), actualUses = 0)
+        assertTrue(ValeAttention.matches(entry, AttentionReason.NOT_USED_RECENTLY, today))
+        assertTrue(ValeAttention.summarize(listOf(entry), today).notUsedRecently.isNotEmpty())
+    }
+
+    @Test
+    fun `matches agrees with summarize for ready for reality check`() {
+        val today = LocalDate.now()
+        val entry = row(item(expectedUses = 5, purchaseDate = today.minusDays(90)), actualUses = 5)
+        assertTrue(ValeAttention.matches(entry, AttentionReason.READY_FOR_REALITY_CHECK, today))
+        assertTrue(ValeAttention.summarize(listOf(entry), today).readyForRealityCheck.isNotEmpty())
+    }
+
+    @Test
+    fun `matches is false for a reason that doesn't apply`() {
+        val today = LocalDate.now()
+        val entry = row(item(expectedUses = 10, purchaseDate = today), actualUses = 8)
+        assertTrue(!ValeAttention.matches(entry, AttentionReason.NOT_USED_RECENTLY, today))
+        assertTrue(!ValeAttention.matches(entry, AttentionReason.READY_FOR_REALITY_CHECK, today))
+    }
 }

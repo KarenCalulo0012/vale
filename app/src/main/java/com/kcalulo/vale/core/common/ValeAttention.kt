@@ -9,6 +9,16 @@ import java.time.temporal.ChronoUnit
 /** One row in an Attention section — a plain string detail, formatted by the caller-free rule (no money here). */
 data class AttentionItem(val itemId: Long, val itemName: String, val detail: String)
 
+/**
+ * The three Attention groups (spec §6). [label] is shared between Home's section headers
+ * and Track's "Showing: …" filter chip so the wording can't drift between the two screens.
+ */
+enum class AttentionReason(val label: String) {
+    NOT_USED_RECENTLY("Haven't touched it in a while"),
+    CLOSE_TO_TARGET("Almost there"),
+    READY_FOR_REALITY_CHECK("Ready for its Reality Check"),
+}
+
 /** Home's "what needs attention" groups (spec §6). Any group may be empty. */
 data class HomeAttention(
     val notUsedRecently: List<AttentionItem>,
@@ -37,6 +47,17 @@ object ValeAttention {
         val readyForRealityCheck = items.mapNotNull { entry -> readyForRealityCheck(entry, today) }
         return HomeAttention(notUsedRecently, closeToTarget, readyForRealityCheck)
     }
+
+    /**
+     * Whether one item belongs to [reason] — reuses the exact same rule [summarize] uses
+     * per group, so Track's "see all" filter can never disagree with what Home showed.
+     */
+    fun matches(entry: ItemWithLastUse, reason: AttentionReason, today: LocalDate = LocalDate.now()): Boolean =
+        when (reason) {
+            AttentionReason.NOT_USED_RECENTLY -> notUsedRecently(entry, today) != null
+            AttentionReason.CLOSE_TO_TARGET -> closeToTarget(entry) != null
+            AttentionReason.READY_FOR_REALITY_CHECK -> readyForRealityCheck(entry, today) != null
+        }
 
     private fun notUsedRecently(entry: ItemWithLastUse, today: LocalDate): AttentionItem? {
         if (ValeCalculations.progress(entry.actualUses, entry.item.expectedUses) >= 1f) return null

@@ -47,7 +47,17 @@ fun ValeNavHost(
                 onCalculateClick = {
                     navController.navigate(ValeRoutes.CALCULATE) { launchSingleTop = true }
                 },
-                onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) }
+                onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) },
+                onAttentionSeeAll = { reason ->
+                    // Same popUpTo/saveState/restoreState contract the bottom-nav tabs use
+                    // (see ValeAppScaffold) — a raw navigate() here left this entry outside
+                    // that bookkeeping and corrupted the *next* tab switch's restoreState.
+                    navController.navigate(ValeRoutes.trackFiltered(reason)) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
         composable(ValeRoutes.THINGS) {
@@ -86,6 +96,14 @@ fun ValeNavHost(
             )
         }
         composable(ValeRoutes.TRACK) {
+            TrackScreen(
+                onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) }
+            )
+        }
+        composable(
+            route = ValeRoutes.TRACK_FILTERED_PATTERN,
+            arguments = listOf(navArgument("reason") { type = NavType.StringType })
+        ) {
             TrackScreen(
                 onItemClick = { id -> navController.navigate(ValeRoutes.itemDetails(id)) }
             )

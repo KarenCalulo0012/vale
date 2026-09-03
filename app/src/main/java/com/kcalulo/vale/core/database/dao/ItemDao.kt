@@ -71,12 +71,17 @@ interface ItemDao {
     @Query("SELECT COUNT(*) FROM items WHERE status = :status")
     fun observeCountByStatus(status: ItemStatus): Flow<Int>
 
-    /** Bought items with their last usage timestamp — Home's Attention section (spec §6). */
+    /**
+     * Bought items with their last usage timestamp — backs Home's Attention section
+     * (spec §6) and Track's own list (which additionally filters this by an Attention
+     * reason when deep-linked from Home).
+     */
     @Query(
         "SELECT items.*, " +
             "(SELECT COUNT(*) FROM usages WHERE usages.itemId = items.id) AS actualUses, " +
             "(SELECT MAX(usedAt) FROM usages WHERE usages.itemId = items.id) AS lastUsedAt " +
-            "FROM items WHERE items.status = 'BOUGHT' AND items.isArchived = 0"
+            "FROM items WHERE items.status = 'BOUGHT' AND items.isArchived = 0 " +
+            "ORDER BY items.createdAt DESC"
     )
     fun observeBoughtItemsWithLastUse(): Flow<List<ItemWithLastUse>>
 }

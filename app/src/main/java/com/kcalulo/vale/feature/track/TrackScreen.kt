@@ -1,13 +1,18 @@
 package com.kcalulo.vale.feature.track
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -24,10 +29,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kcalulo.vale.core.common.AttentionReason
 import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.ValeCalculations
 import com.kcalulo.vale.core.common.displayCostPerUseMinor
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
+import com.kcalulo.vale.core.design.components.ValeChip
 import com.kcalulo.vale.core.design.components.ValeItemCard
 import com.kcalulo.vale.core.design.components.ValeMascot
 import com.kcalulo.vale.core.design.components.ValePrimaryButton
@@ -42,6 +49,7 @@ fun TrackScreen(
     val items by viewModel.items.collectAsStateWithLifecycle()
     val symbol by viewModel.currencySymbol.collectAsStateWithLifecycle()
     val lastLogged by viewModel.lastLogged.collectAsStateWithLifecycle()
+    val activeFilter by viewModel.activeFilter.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(lastLogged) {
@@ -71,6 +79,10 @@ fun TrackScreen(
                 color = MaterialTheme.colorScheme.onBackground
             )
 
+            activeFilter?.let { reason ->
+                FilterChipRow(reason = reason, onClear = viewModel::clearFilter)
+            }
+
             if (items.isEmpty()) {
                 Column(
                     modifier = Modifier
@@ -81,12 +93,16 @@ fun TrackScreen(
                 ) {
                     ValeMascot(size = 64.dp)
                     Text(
-                        text = "Nothing to track yet",
+                        text = if (activeFilter != null) "Nothing needs a look here" else "Nothing to track yet",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Buy something from Calculate and it'll show up here.",
+                        text = if (activeFilter != null) {
+                            "Every bought item has cleared this one — nice."
+                        } else {
+                            "Buy something from Calculate and it'll show up here."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -108,6 +124,29 @@ fun TrackScreen(
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+/** Shows which Attention group deep-linked here (spec §6) with a clear way back to everything. */
+@Composable
+private fun FilterChipRow(reason: AttentionReason, onClear: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ValeChip(
+            text = "Showing: ${reason.label}",
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = "Clear filter",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .clickable(onClick = onClear)
+                .padding(4.dp)
         )
     }
 }

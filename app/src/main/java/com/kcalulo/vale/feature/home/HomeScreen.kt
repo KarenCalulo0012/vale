@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kcalulo.vale.core.common.AttentionItem
+import com.kcalulo.vale.core.common.AttentionReason
 import com.kcalulo.vale.core.common.HomeAttention
 import com.kcalulo.vale.core.common.MoneyFormat
 import com.kcalulo.vale.core.common.displayCostPerUseMinor
@@ -32,6 +33,7 @@ import com.kcalulo.vale.core.common.summaryLine
 import com.kcalulo.vale.core.design.components.toValeStatus
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
 import com.kcalulo.vale.core.database.entity.ItemStatus
+import com.kcalulo.vale.core.design.components.ValeChip
 import com.kcalulo.vale.core.design.components.ValeItemCard
 import com.kcalulo.vale.core.design.components.ValeMascot
 import com.kcalulo.vale.core.design.components.ValePrimaryButton
@@ -42,6 +44,7 @@ import com.kcalulo.vale.core.design.components.ValeStatus
 fun HomeScreen(
     onCalculateClick: () -> Unit,
     onItemClick: (Long) -> Unit,
+    onAttentionSeeAll: (AttentionReason) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -102,7 +105,11 @@ fun HomeScreen(
         }
 
         if (!state.attention.isEmpty) {
-            AttentionSection(attention = state.attention, onItemClick = onItemClick)
+            AttentionSection(
+                attention = state.attention,
+                onItemClick = onItemClick,
+                onSeeAll = onAttentionSeeAll
+            )
         }
 
         if (state.recentItems.isEmpty() && !state.isLoading) {
@@ -146,10 +153,16 @@ fun HomeScreen(
 /**
  * What needs a look right now (spec §6): items going stale, items about to prove
  * themselves, items ready for their Reality Check. Deliberately terse — one line per
- * item, no extra chrome — so it doesn't turn Home into a dashboard.
+ * item, no extra chrome — so it doesn't turn Home into a dashboard. A group past
+ * [ATTENTION_GROUP_VISIBLE_LIMIT] hands off the rest to Track instead of growing in
+ * place, which is the actual screen for doing something about a bought item.
  */
 @Composable
-private fun AttentionSection(attention: HomeAttention, onItemClick: (Long) -> Unit) {
+private fun AttentionSection(
+    attention: HomeAttention,
+    onItemClick: (Long) -> Unit,
+    onSeeAll: (AttentionReason) -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -162,22 +175,49 @@ private fun AttentionSection(attention: HomeAttention, onItemClick: (Long) -> Un
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
-        AttentionGroup("Haven't touched it in a while", attention.notUsedRecently, onItemClick)
-        AttentionGroup("Almost there", attention.closeToTarget, onItemClick)
-        AttentionGroup("Ready for its Reality Check", attention.readyForRealityCheck, onItemClick)
+        AttentionGroup(AttentionReason.NOT_USED_RECENTLY, attention.notUsedRecently, onItemClick, onSeeAll)
+        AttentionGroup(AttentionReason.CLOSE_TO_TARGET, attention.closeToTarget, onItemClick, onSeeAll)
+        AttentionGroup(AttentionReason.READY_FOR_REALITY_CHECK, attention.readyForRealityCheck, onItemClick, onSeeAll)
     }
 }
 
+/** Groups past this size truncate, with "+N more" handing off to Track's filtered list. */
+private const val ATTENTION_GROUP_VISIBLE_LIMIT = 2
+
 @Composable
-private fun AttentionGroup(label: String, items: List<AttentionItem>, onItemClick: (Long) -> Unit) {
+private fun AttentionGroup(
+    reason: AttentionReason,
+    items: List<AttentionItem>,
+    onItemClick: (Long) -> Unit,
+    onSeeAll: (AttentionReason) -> Unit,
+) {
     if (items.isEmpty()) return
+    val overflowCount = items.size - ATTENTION_GROUP_VISIBLE_LIMIT
+    val visibleItems = if (overflowCount <= 0) items else items.take(ATTENTION_GROUP_VISIBLE_LIMIT)
+
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        items.forEach { attentionItem ->
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = reason.label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            // A count, not a warning — VALE doesn't treat "needs a look" as an alarm,
+            // so this stays in-brand purple rather than red. Tapping it also jumps to
+            // Track, same as "+N more" below.
+            if (overflowCount > 0) {
+                ValeChip(
+                    text = items.size.toString(),
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { onSeeAll(reason) }
+                )
+            }
+        }
+        visibleItems.forEach { attentionItem ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -197,6 +237,16 @@ private fun AttentionGroup(label: String, items: List<AttentionItem>, onItemClic
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+        if (overflowCount > 0) {
+            Text(
+                text = "+$overflowCount more",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clickable { onSeeAll(reason) }
+                    .padding(vertical = 4.dp)
+            )
         }
     }
 }
