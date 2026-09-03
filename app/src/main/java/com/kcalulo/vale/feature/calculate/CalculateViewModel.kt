@@ -50,12 +50,16 @@ sealed interface DecisionState {
     data class Saved(val itemId: Long, val status: ItemStatus) : DecisionState
 }
 
-/** Parses "1,200.50" → 120050 minor units; null when not a number. */
+/** Above this, minor-unit prices stop fitting safely in a Long (spec §7 "large numeric values"). */
+private val MAX_PRICE_MINOR = BigDecimal(Long.MAX_VALUE)
+
+/** Parses "1,200.50" → 120050 minor units; null when not a number or when it's unreasonably large. */
 internal fun parsePriceMinor(text: String): Long? =
     text.replace(",", "").replace("₱", "").trim()
         .takeIf { it.isNotEmpty() }
         ?.toBigDecimalOrNull()
         ?.multiply(BigDecimal(100))
+        ?.takeIf { it.abs() <= MAX_PRICE_MINOR }
         ?.toLong()
 
 @HiltViewModel
@@ -92,7 +96,8 @@ class CalculateViewModel @Inject constructor(
         val nameError = if (state.name.isBlank()) "Give it a name, bestie." else null
         val priceError = when {
             state.priceText.isBlank() -> "How much is it?"
-            (state.priceMinor ?: -1) <= 0 -> "That price isn't mathing."
+            state.priceMinor == null -> "That number is too big, bestie."
+            state.priceMinor <= 0 -> "That price isn't mathing."
             else -> null
         }
         _uiState.update { it.copy(nameError = nameError, priceError = priceError) }

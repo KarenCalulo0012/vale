@@ -4,11 +4,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kcalulo.vale.core.database.dao.ItemWithUsageCount
+import com.kcalulo.vale.core.database.entity.ItemStatus
+import com.kcalulo.vale.core.database.entity.SkipReason
 import com.kcalulo.vale.core.database.entity.UsageEntity
 import com.kcalulo.vale.data.preferences.UserPreferencesRepository
 import com.kcalulo.vale.data.repository.ItemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -78,9 +81,33 @@ class ItemDetailsViewModel @Inject constructor(
         viewModelScope.launch { itemRepository.removeUsage(usageId) }
     }
 
+    /** Considering → Bought (spec §10: reopen a Considering item and finish deciding). */
+    fun markAsBought() {
+        val item = itemState.value?.item ?: return
+        viewModelScope.launch {
+            itemRepository.updateItem(
+                item.copy(status = ItemStatus.BOUGHT, purchaseDate = LocalDate.now())
+            )
+        }
+    }
+
+    /** Considering → Skipped (spec §10). */
+    fun markAsSkipped(reason: SkipReason?) {
+        val item = itemState.value?.item ?: return
+        viewModelScope.launch {
+            itemRepository.updateItem(item.copy(status = ItemStatus.SKIPPED, skipReason = reason))
+        }
+    }
+
     fun archiveItem() {
         val item = itemState.value?.item ?: return
         viewModelScope.launch { itemRepository.updateItem(item.copy(isArchived = true)) }
+    }
+
+    /** Undoes an archive — the item reappears in its normal lists (spec: reversible action). */
+    fun unarchiveItem() {
+        val item = itemState.value?.item ?: return
+        viewModelScope.launch { itemRepository.updateItem(item.copy(isArchived = false)) }
     }
 
     fun deleteItem() {

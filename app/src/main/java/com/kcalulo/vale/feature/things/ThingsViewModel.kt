@@ -14,15 +14,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-/** Filters exposed in V1 (spec §12 — the rest live "under More" once they exist). */
+/**
+ * Filters exposed in Things (spec §12). Archived sits at the end since it's a reversible
+ * "tucked away" bucket rather than a day-to-day status, per the spec's "keep the rest under
+ * More" guidance — it's still a plain chip here since the row already scrolls horizontally.
+ */
 enum class ThingsFilter(val label: String) {
     ALL("All"),
     BOUGHT("Bought"),
     CONSIDERING("Considering"),
-    SKIPPED("Skipped");
+    SKIPPED("Skipped"),
+    ARCHIVED("Archived");
 
     fun toItemStatus(): ItemStatus? = when (this) {
-        ALL -> null
+        ALL, ARCHIVED -> null
         BOUGHT -> ItemStatus.BOUGHT
         CONSIDERING -> ItemStatus.CONSIDERING
         SKIPPED -> ItemStatus.SKIPPED
@@ -57,15 +62,34 @@ class ThingsViewModel @Inject constructor(
     private val _sort = MutableStateFlow(ThingsSort.RECENTLY_ADDED)
     private val _query = MutableStateFlow("")
 
-    val uiState: StateFlow<ThingsUiState> = combine(
+    /**
+     * Archived lives in a separate source (spec §12) — every other filter reads active items.
+     * [Source.hasAnyItems] reflects the whole app (active + archived), not just this filter's
+     * bucket, so switching to an empty filter shows "nothing matches" instead of the
+     * first-time "nothing here yet" empty state.
+     */
+    private data class Source(val items: List<ItemWithUsageCount>, val hasAnyItems: Boolean)
+
+    private val sourceByFilter = combine(
         itemRepository.observeItems(),
+        itemRepository.observeArchivedItems(),
+        _filter,
+    ) { active, archived, filter ->
+        Source(
+            items = if (filter == ThingsFilter.ARCHIVED) archived else active,
+            hasAnyItems = active.isNotEmpty() || archived.isNotEmpty(),
+        )
+    }
+
+    val uiState: StateFlow<ThingsUiState> = combine(
+        sourceByFilter,
         _filter,
         _sort,
         _query,
         preferencesRepository.preferences,
-    ) { allItems, filter, sort, query, prefs ->
+    ) { source, filter, sort, query, prefs ->
         val targetStatus = filter.toItemStatus()
-        var visible = if (targetStatus == null) allItems else allItems.filter { it.item.status == targetStatus }
+        var visible = if (targetStatus == null) source.items else source.items.filter { it.item.status == targetStatus }
         if (query.isNotBlank()) {
             visible = visible.filter { it.item.name.contains(query, ignoreCase = true) }
         }
@@ -78,7 +102,7 @@ class ThingsViewModel @Inject constructor(
         }
         ThingsUiState(
             items = visible,
-            hasAnyItems = allItems.isNotEmpty(),
+            hasAnyItems = source.hasAnyItems,
             filter = filter,
             sort = sort,
             query = query,

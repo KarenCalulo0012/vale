@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 /** Single source of truth for items and their usage records. */
 interface ItemRepository {
     fun observeItems(): Flow<List<ItemWithUsageCount>>
+    fun observeArchivedItems(): Flow<List<ItemWithUsageCount>>
     fun observeItemsByStatus(status: ItemStatus): Flow<List<ItemWithUsageCount>>
     fun observeRecentItems(limit: Int = 5): Flow<List<ItemWithUsageCount>>
     fun observeItem(id: Long): Flow<ItemWithUsageCount?>
@@ -37,6 +38,8 @@ class ItemRepositoryImpl @Inject constructor(
 ) : ItemRepository {
 
     override fun observeItems() = itemDao.observeItems()
+
+    override fun observeArchivedItems() = itemDao.observeArchivedItems()
 
     override fun observeItemsByStatus(status: ItemStatus) = itemDao.observeItemsByStatus(status)
 

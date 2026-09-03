@@ -92,6 +92,10 @@ fun HomeScreen(
             )
         }
 
+        if (state.snapshot.checked > 0) {
+            MonthlySnapshotRow(snapshot = state.snapshot)
+        }
+
         if (state.recentItems.isEmpty() && !state.isLoading) {
             // Empty state
             Column(
@@ -127,6 +131,38 @@ fun HomeScreen(
                 )
             }
         }
+    }
+}
+
+/** Lightweight snapshot — spec §6 explicitly warns this must not look like a banking dashboard. */
+@Composable
+private fun MonthlySnapshotRow(snapshot: HomeSnapshot) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.large)
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        SnapshotStat(value = snapshot.checked, label = "Checked")
+        SnapshotStat(value = snapshot.bought, label = "Bought")
+        SnapshotStat(value = snapshot.skipped, label = "Skipped")
+    }
+}
+
+@Composable
+private fun SnapshotStat(value: Int, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

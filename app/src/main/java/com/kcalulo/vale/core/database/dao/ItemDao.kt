@@ -41,6 +41,9 @@ interface ItemDao {
     @Query("$ITEM_WITH_USES WHERE items.isArchived = 0 ORDER BY items.createdAt DESC")
     fun observeItems(): Flow<List<ItemWithUsageCount>>
 
+    @Query("$ITEM_WITH_USES WHERE items.isArchived = 1 ORDER BY items.createdAt DESC")
+    fun observeArchivedItems(): Flow<List<ItemWithUsageCount>>
+
     @Query("$ITEM_WITH_USES WHERE items.status = :status AND items.isArchived = 0 ORDER BY items.createdAt DESC")
     fun observeItemsByStatus(status: ItemStatus): Flow<List<ItemWithUsageCount>>
 

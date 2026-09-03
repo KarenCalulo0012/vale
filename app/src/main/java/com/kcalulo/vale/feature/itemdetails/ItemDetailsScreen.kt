@@ -46,6 +46,7 @@ import com.kcalulo.vale.core.design.components.ValePlaceholderScreen
 import com.kcalulo.vale.core.design.components.ValePrimaryButton
 import com.kcalulo.vale.core.design.components.ValeProgressBar
 import com.kcalulo.vale.core.design.components.ValeSecondaryButton
+import com.kcalulo.vale.core.design.components.ValeSkipReasonSheet
 import com.kcalulo.vale.core.design.components.ValeStatus
 import com.kcalulo.vale.core.design.components.ValeStatusChip
 
@@ -66,6 +67,8 @@ fun ItemDetailsScreen(
     var showUsageHistory by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showArchiveConfirm by remember { mutableStateOf(false) }
+    var showBuyConfirm by remember { mutableStateOf(false) }
+    var showSkipSheet by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(lastLogged) {
@@ -134,6 +137,13 @@ fun ItemDetailsScreen(
                     else -> null
                 }
                 statusChip?.let { ValeStatusChip(it) }
+                if (item.isArchived) {
+                    Text(
+                        text = "Archived — hidden from your active lists",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 if (item.status == ItemStatus.BOUGHT && actualUses == 0) {
                     Text(
@@ -189,13 +199,29 @@ fun ItemDetailsScreen(
                     )
                 }
             }
+
+            if (item.status == ItemStatus.CONSIDERING) {
+                // spec §10 — reopen a Considering item and finish deciding.
+                ValePrimaryButton(
+                    text = "Yes, I'm buying it",
+                    onClick = { showBuyConfirm = true },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                ValeSecondaryButton(
+                    text = "Skip it",
+                    onClick = { showSkipSheet = true },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
         SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     if (showMoreSheet) {
         MoreOptionsSheet(
+            isArchived = item.isArchived,
             onArchive = { showMoreSheet = false; showArchiveConfirm = true },
+            onUnarchive = { showMoreSheet = false; viewModel.unarchiveItem() },
             onDelete = { showMoreSheet = false; showDeleteConfirm = true },
             onDismiss = { showMoreSheet = false }
         )
@@ -221,6 +247,29 @@ fun ItemDetailsScreen(
                 onBack()
             },
             onDismiss = { showDeleteConfirm = false }
+        )
+    }
+
+    if (showBuyConfirm) {
+        ValeDialog(
+            title = "Buying it today?",
+            message = "We'll start counting from today and see if you actually use her.",
+            confirmText = "Yes, bought it!",
+            onConfirm = {
+                showBuyConfirm = false
+                viewModel.markAsBought()
+            },
+            onDismiss = { showBuyConfirm = false }
+        )
+    }
+
+    if (showSkipSheet) {
+        ValeSkipReasonSheet(
+            onReasonSelected = { reason ->
+                showSkipSheet = false
+                viewModel.markAsSkipped(reason)
+            },
+            onDismiss = { showSkipSheet = false }
         )
     }
 
@@ -253,6 +302,7 @@ private fun DetailStatsGrid(item: com.kcalulo.vale.core.database.entity.ItemEnti
         item.purchaseDate?.let { StatRow("Purchase date", it.toString()) }
         StatRow("Expected uses", item.expectedUses.toString())
         StatRow("Target cost/use", MoneyFormat.formatPerUse(item.targetCostPerUseMinor, symbol))
+        item.skipReason?.let { StatRow("Why skipped", it.label) }
     }
 }
 
@@ -276,7 +326,9 @@ private fun StatRow(label: String, value: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MoreOptionsSheet(
+    isArchived: Boolean,
     onArchive: () -> Unit,
+    onUnarchive: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -295,7 +347,11 @@ private fun MoreOptionsSheet(
             MoreOptionRow(label = "Edit", subtitle = "Coming soon", onClick = onDismiss)
             MoreOptionRow(label = "Sell", subtitle = "Coming soon", onClick = onDismiss)
             MoreOptionRow(label = "Give Away", subtitle = "Coming soon", onClick = onDismiss)
-            MoreOptionRow(label = "Archive", onClick = onArchive)
+            if (isArchived) {
+                MoreOptionRow(label = "Unarchive", onClick = onUnarchive)
+            } else {
+                MoreOptionRow(label = "Archive", onClick = onArchive)
+            }
             MoreOptionRow(
                 label = "Delete",
                 onClick = onDelete,
