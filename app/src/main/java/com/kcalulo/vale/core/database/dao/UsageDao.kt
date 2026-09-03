@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.kcalulo.vale.core.database.entity.UsageEntity
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -20,4 +21,8 @@ interface UsageDao {
 
     @Query("SELECT COUNT(*) FROM usages WHERE itemId = :itemId")
     fun observeUsageCount(itemId: Long): Flow<Int>
+
+    /** Usage logs since [since] across every item — Progress's monthly snapshot (spec §20). */
+    @Query("SELECT COUNT(*) FROM usages WHERE usedAt >= :since")
+    fun observeUsageCountSince(since: Instant): Flow<Int>
 }

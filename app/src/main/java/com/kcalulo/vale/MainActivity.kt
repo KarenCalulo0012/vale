@@ -21,12 +21,14 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kcalulo.vale.core.design.components.ValeBottomNav
+import com.kcalulo.vale.core.design.components.ValeDialog
 import com.kcalulo.vale.core.design.components.ValeNavItem
 import com.kcalulo.vale.core.design.theme.ValeTheme
 import com.kcalulo.vale.core.navigation.TopLevelDestinations
 import com.kcalulo.vale.core.navigation.ValeNavHost
 import com.kcalulo.vale.core.navigation.ValeRoutes
 import com.kcalulo.vale.data.preferences.ThemePreference
+import com.kcalulo.vale.feature.progress.AchievementPopupViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -69,7 +71,10 @@ fun ValeApp(viewModel: MainViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun ValeAppScaffold(startDestination: String) {
+private fun ValeAppScaffold(
+    startDestination: String,
+    achievementPopupViewModel: AchievementPopupViewModel = hiltViewModel(),
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
@@ -106,6 +111,18 @@ private fun ValeAppScaffold(startDestination: String) {
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
+        )
+    }
+
+    val unlocked by achievementPopupViewModel.current.collectAsStateWithLifecycle()
+    unlocked?.let { achievement ->
+        ValeDialog(
+            title = "${achievement.emoji} ${achievement.title}",
+            message = achievement.shortCopy,
+            confirmText = "Continue",
+            onConfirm = achievementPopupViewModel::dismiss,
+            onDismiss = achievementPopupViewModel::dismiss,
+            cancelText = "",
         )
     }
 }

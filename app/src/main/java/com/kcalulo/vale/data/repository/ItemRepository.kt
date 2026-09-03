@@ -35,6 +35,7 @@ interface ItemRepository {
 class ItemRepositoryImpl @Inject constructor(
     private val itemDao: ItemDao,
     private val usageDao: UsageDao,
+    private val achievementRepository: AchievementRepository,
 ) : ItemRepository {
 
     override fun observeItems() = itemDao.observeItems()
@@ -51,16 +52,26 @@ class ItemRepositoryImpl @Inject constructor(
 
     override fun observeCountByStatus(status: ItemStatus) = itemDao.observeCountByStatus(status)
 
-    override suspend fun saveItem(item: ItemEntity) = itemDao.insert(item)
+    override suspend fun saveItem(item: ItemEntity): Long {
+        val id = itemDao.insert(item)
+        achievementRepository.refreshCheck()
+        return id
+    }
 
-    override suspend fun updateItem(item: ItemEntity) = itemDao.update(item)
+    override suspend fun updateItem(item: ItemEntity) {
+        itemDao.update(item)
+        achievementRepository.refreshCheck()
+    }
 
     override suspend fun deleteItem(item: ItemEntity) = itemDao.delete(item)
 
     override fun observeUsages(itemId: Long) = usageDao.observeUsagesForItem(itemId)
 
-    override suspend fun logUsage(itemId: Long, usedAt: Instant) =
-        usageDao.insert(UsageEntity(itemId = itemId, usedAt = usedAt))
+    override suspend fun logUsage(itemId: Long, usedAt: Instant): Long {
+        val usageId = usageDao.insert(UsageEntity(itemId = itemId, usedAt = usedAt))
+        achievementRepository.refreshCheck()
+        return usageId
+    }
 
     override suspend fun removeUsage(usageId: Long) = usageDao.deleteById(usageId)
 }
