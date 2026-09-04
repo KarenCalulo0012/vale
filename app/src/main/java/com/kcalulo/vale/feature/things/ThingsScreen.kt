@@ -106,7 +106,12 @@ fun ThingsScreen(
             )
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(state.items, key = { it.item.id }) { row ->
-                    ThingRow(row = row, symbol = state.currencySymbol, onClick = { onItemClick(row.item.id) })
+                    ThingRow(
+                        row = row,
+                        symbol = state.currencySymbol,
+                        onClick = { onItemClick(row.item.id) },
+                        modifier = Modifier.animateItem()
+                    )
                 }
             }
         }
@@ -161,10 +166,16 @@ private fun FilterRow(selected: ThingsFilter, onSelected: (ThingsFilter) -> Unit
 }
 
 @Composable
-private fun ThingRow(row: ItemWithUsageCount, symbol: String, onClick: () -> Unit) {
+private fun ThingRow(
+    row: ItemWithUsageCount,
+    symbol: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val item = row.item
     val costPerUse = item.displayCostPerUseMinor(row.actualUses)
     ValeItemCard(
+        modifier = modifier,
         title = item.name,
         price = MoneyFormat.format(item.originalPriceMinor, symbol),
         perUse = costPerUse?.let { "${MoneyFormat.formatPerUse(it, symbol)} per use" } ?: "Not used yet",

@@ -1,5 +1,11 @@
 package com.kcalulo.vale.feature.track
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
@@ -120,6 +126,7 @@ fun TrackScreen(
                             symbol = symbol,
                             onClick = { onItemClick(row.item.id) },
                             onLogUsage = { viewModel.logUsage(row) },
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }
@@ -278,11 +285,13 @@ private fun TrackRow(
     symbol: String,
     onClick: () -> Unit,
     onLogUsage: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val item = row.item
     val completed = ValeCalculations.isCompleted(row.actualUses, item.expectedUses)
     val costPerUse = item.displayCostPerUseMinor(row.actualUses)
     ValeItemCard(
+        modifier = modifier,
         title = item.name,
         price = MoneyFormat.format(item.originalPriceMinor, symbol),
         perUse = costPerUse?.let { "${MoneyFormat.formatPerUse(it, symbol)} per use" } ?: "Not used yet",
@@ -295,35 +304,43 @@ private fun TrackRow(
         },
         onClick = onClick,
         trailingAction = {
-            if (completed) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Completed",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
+            AnimatedContent(
+                targetState = completed,
+                transitionSpec = {
+                    (scaleIn(initialScale = 0.6f) + fadeIn()) togetherWith (scaleOut(targetScale = 0.6f) + fadeOut())
+                },
+                label = "trackAction"
+            ) { isCompleted ->
+                if (isCompleted) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Completed",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
-                }
-            } else {
-                Surface(
-                    onClick = onLogUsage,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "+ Used it",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                } else {
+                    Surface(
+                        onClick = onLogUsage,
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "+ Used it",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }

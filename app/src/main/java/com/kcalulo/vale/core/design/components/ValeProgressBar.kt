@@ -1,17 +1,23 @@
 package com.kcalulo.vale.core.design.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-/** Usage progress toward the expected-uses target (0..1, values outside are clamped). */
+/**
+ * Usage progress toward the expected-uses target (0..1, values outside are clamped).
+ * Animates between values so logging a use visibly fills the bar instead of snapping.
+ */
 @Composable
 fun ValeProgressBar(
     progress: Float,
@@ -19,8 +25,13 @@ fun ValeProgressBar(
     color: Color = MaterialTheme.colorScheme.primary,
     trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
 ) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 400),
+        label = "progress"
+    )
     LinearProgressIndicator(
-        progress = { progress.coerceIn(0f, 1f) },
+        progress = { animatedProgress },
         modifier = modifier
             .fillMaxWidth()
             .height(6.dp)

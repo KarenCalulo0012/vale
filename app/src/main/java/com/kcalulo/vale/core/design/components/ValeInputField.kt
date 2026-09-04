@@ -19,6 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -43,7 +46,7 @@ fun ValeInputField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(label),
             placeholder = {
                 Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant)
             },
@@ -100,7 +103,9 @@ fun ValeStepperField(
             )
             FilledIconButton(
                 onClick = { onValueChange((value - 1).coerceAtLeast(minValue)) },
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier
+                    .size(44.dp)
+                    .semantics { contentDescription = "Decrease" },
                 shape = MaterialTheme.shapes.small,
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,

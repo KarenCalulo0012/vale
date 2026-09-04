@@ -1,9 +1,14 @@
 package com.kcalulo.vale.core.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -22,6 +27,18 @@ import com.kcalulo.vale.feature.realitycheck.RealityCheckScreen
 import com.kcalulo.vale.feature.things.ThingsScreen
 import com.kcalulo.vale.feature.track.TrackScreen
 
+/** Bottom-nav tabs are siblings, not a stack — crossfade between them rather than sliding. */
+private val TOP_LEVEL_ROUTES = setOf(
+    ValeRoutes.HOME,
+    ValeRoutes.THINGS,
+    ValeRoutes.CALCULATE,
+    ValeRoutes.TRACK,
+    ValeRoutes.PROGRESS,
+)
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTopLevelHop(): Boolean =
+    initialState.destination.route in TOP_LEVEL_ROUTES && targetState.destination.route in TOP_LEVEL_ROUTES
+
 @Composable
 fun ValeNavHost(
     navController: NavHostController,
@@ -31,7 +48,39 @@ fun ValeNavHost(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            if (isTopLevelHop()) {
+                fadeIn(tween(220))
+            } else {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(280)) +
+                    fadeIn(tween(280))
+            }
+        },
+        exitTransition = {
+            if (isTopLevelHop()) {
+                fadeOut(tween(220))
+            } else {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(280)) +
+                    fadeOut(tween(280))
+            }
+        },
+        popEnterTransition = {
+            if (isTopLevelHop()) {
+                fadeIn(tween(220))
+            } else {
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) +
+                    fadeIn(tween(280))
+            }
+        },
+        popExitTransition = {
+            if (isTopLevelHop()) {
+                fadeOut(tween(220))
+            } else {
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(280)) +
+                    fadeOut(tween(280))
+            }
+        }
     ) {
         composable(ValeRoutes.ONBOARDING) {
             OnboardingScreen(
